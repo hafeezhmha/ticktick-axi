@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     // Every test runs offline: API calls go through a stubbed `fetch`, and the
     // config dir is a per-test temp dir, never the real ~/.config.
+    setupFiles: ["./test/setup.ts"],
     restoreMocks: true,
     unstubEnvs: true,
     unstubGlobals: true,
