@@ -316,7 +316,7 @@ async function status(args: string[]) {
 
   if (bool(p, "verify")) {
     const projects = (await api.listProjects(getClient())) ?? [];
-    out.verified = `ok: TickTick accepted the token (${projects.length} projects visible)`;
+    out.verified = `TickTick accepted the token (${projects.length} projects visible)`;
   } else {
     out.help = [
       "Run `ticktick-axi auth status --verify` to test the token against TickTick",

@@ -327,23 +327,23 @@ export async function updateCommand(args: string[]) {
     body.timeZone = tz;
   }
 
-  const label = `${current.title ?? taskId}`;
+  const ref = { id: taskId, title: current.title ?? "" };
   if (changes.length === 0) {
     return {
-      task: `${taskId} "${label}" no changes (already as requested)`,
+      task: { ...ref, result: "no changes (already as requested)" },
     };
   }
   if (!bool(p, "yes")) {
     return {
       dry_run: "nothing was sent",
-      task: `${taskId} "${label}"`,
+      task: ref,
       changes,
       help: [confirmHint("update", args, "apply it")],
     };
   }
   const updated = await api.updateTask(client, taskId, body);
   return {
-    updated: `${taskId} "${updated?.title ?? label}"`,
+    updated: { ...ref, title: updated?.title ?? ref.title },
     changes,
     help: [`Run \`ticktick-axi task ${projectId} ${taskId}\` to view it`],
   };
@@ -365,14 +365,14 @@ export async function completeCommand(args: string[]) {
   const client = getClient();
   const t: Task = await api.getTask(client, projectId, taskId);
   const status = statusName(t.status);
-  const label = `${taskId} "${t.title ?? ""}"`;
+  const ref = { id: taskId, title: t.title ?? "" };
   if (status === "completed") {
-    return { task: `${label} already completed (no-op)` };
+    return { task: { ...ref, result: "already completed (no-op)" } };
   }
   if (!bool(p, "yes")) {
     const out: Record<string, unknown> = {
       dry_run: "nothing was sent",
-      task: label,
+      task: ref,
       would_change: `status: ${status} -> completed`,
     };
     if (t.repeatFlag) {
@@ -383,7 +383,7 @@ export async function completeCommand(args: string[]) {
   }
   await api.completeTask(client, projectId, taskId);
   return {
-    completed: label,
+    completed: ref,
     ...(t.repeatFlag
       ? { note: "repeating task: the next occurrence is scheduled by TickTick" }
       : {}),
