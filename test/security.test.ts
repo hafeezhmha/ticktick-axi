@@ -23,7 +23,7 @@ const COMMANDS: string[][] = [
   ["upcoming"],
   ["task", PROJECT, TASK],
   ["create", "X", "--project", PROJECT, "--yes"],
-  ["update", PROJECT, TASK, "--title", "Y", "--yes"],
+  ["edit", PROJECT, TASK, "--title", "Y", "--yes"],
   ["complete", PROJECT, TASK, "--yes"],
   ["auth", "status", "--verify"],
   ["auth", "logout"],

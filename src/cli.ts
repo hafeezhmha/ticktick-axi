@@ -3,6 +3,7 @@ import { runAxiCli } from "axi-sdk-js";
 import { AUTH_HELP, authCommand } from "./commands/auth.js";
 import { homeCommand } from "./commands/home.js";
 import { PROJECTS_HELP, projectsCommand } from "./commands/projects.js";
+import { selfUpdateCommand, UPDATE_HELP } from "./commands/self-update.js";
 import { SETUP_HELP, setupCommand } from "./commands/setup.js";
 import { TASK_HELP, taskCommand } from "./commands/task.js";
 import {
@@ -18,8 +19,8 @@ import {
   completeCommand,
   CREATE_HELP,
   createCommand,
-  UPDATE_HELP,
-  updateCommand,
+  EDIT_HELP,
+  editCommand,
 } from "./commands/write.js";
 import { VERSION } from "./version.js";
 
@@ -27,15 +28,15 @@ export const DESCRIPTION =
   "Agent ergonomic CLI for TickTick tasks via the official Open API. Read freely; writes are dry runs until --yes.";
 
 export const TOP_HELP = `usage: ticktick-axi [command] [args] [flags]
-commands[11]:
+commands[12]:
   (none)=home: overdue, due today, counts
   projects, tasks, task <projectId> <taskId>, overdue, upcoming
-  create "<title>" --project <id>, update <projectId> <taskId>, complete <projectId> <taskId>
-  auth login|status|logout, setup hooks
+  create "<title>" --project <id>, edit <projectId> <taskId>, complete <projectId> <taskId>
+  auth login|status|logout, setup hooks, update [--check] (upgrade ticktick-axi)
 flags:
   --help (every command), -v/-V/--version
 writes:
-  create/update/complete are dry runs that send nothing until you add --yes
+  create/edit/complete are dry runs that send nothing until you add --yes
 auth:
   OAuth: export TICKTICK_CLIENT_ID/TICKTICK_CLIENT_SECRET, then \`ticktick-axi auth login\`
   or a personal API token: \`ticktick-axi auth login --token-stdin < token.txt\`
@@ -57,9 +58,10 @@ const COMMAND_HELP: Record<string, string> = {
   overdue: OVERDUE_HELP,
   upcoming: UPCOMING_HELP,
   create: CREATE_HELP,
-  update: UPDATE_HELP,
+  edit: EDIT_HELP,
   complete: COMPLETE_HELP,
   setup: SETUP_HELP,
+  update: UPDATE_HELP,
 };
 
 const COMMANDS = {
@@ -70,7 +72,7 @@ const COMMANDS = {
   overdue: overdueCommand,
   upcoming: upcomingCommand,
   create: createCommand,
-  update: updateCommand,
+  edit: editCommand,
   complete: completeCommand,
   setup: setupCommand,
 };
@@ -81,6 +83,7 @@ export interface MainOptions {
 }
 
 export async function main(options: MainOptions = {}): Promise<void> {
+  const stdout = options.stdout ?? process.stdout;
   await runAxiCli({
     ...(options.argv ? { argv: options.argv } : {}),
     ...(options.stdout ? { stdout: options.stdout } : {}),
@@ -88,14 +91,17 @@ export async function main(options: MainOptions = {}): Promise<void> {
     version: VERSION,
     topLevelHelp: TOP_HELP,
     home: () => homeCommand(),
-    commands: COMMANDS,
+    commands: {
+      ...COMMANDS,
+      update: (args: string[]) => selfUpdateCommand(args, stdout),
+    },
     getCommandHelp: (command) => COMMAND_HELP[command],
     renderUnknownCommand: (command) =>
       `${encode({
         error: `Unknown command: ${command}`,
         code: "VALIDATION_ERROR",
         help: [
-          `Commands: ${Object.keys(COMMANDS).join(", ")}`,
+          `Commands: ${[...Object.keys(COMMANDS), "update"].join(", ")}`,
           "Run `ticktick-axi --help` for usage",
         ],
       })}\n`,

@@ -98,7 +98,7 @@ export function renderTask(t: Task, tz: string, full: boolean) {
   if (status === "open") {
     help.push(
       `Run \`ticktick-axi complete ${t.projectId} ${t.id}\` to preview completing it`,
-      `Run \`ticktick-axi update ${t.projectId} ${t.id} --due <date>\` to preview a change`,
+      `Run \`ticktick-axi edit ${t.projectId} ${t.id} --due <date>\` to preview a change`,
     );
   }
   if (help.length) out.help = help;

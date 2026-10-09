@@ -176,7 +176,7 @@ async function translateError(
         "RATE_LIMITED",
         `TickTick rate limit reached.${when}`,
         opts.read
-          ? "Wait a minute, then rerun the command"
+          ? `Wait ${wait !== null ? `${Math.ceil(wait / 1000)}s` : "a minute"}, then rerun the command`
           : "The change was rejected, not applied; it is safe to rerun after a short wait",
       );
     }

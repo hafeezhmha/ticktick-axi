@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("axi-sdk-js", async (orig) => ({
   ...(await orig<typeof import("axi-sdk-js")>()),
   installSessionStartHooks: vi.fn(),
+  runUpdate: vi.fn(async () => ({ update: "checked" })),
   uninstallSessionStartHooks: vi.fn(),
   sessionStartHookStatus: vi.fn(() => ({
     marker: "ticktick-axi",
@@ -17,6 +18,7 @@ vi.mock("axi-sdk-js", async (orig) => ({
 
 import {
   installSessionStartHooks,
+  runUpdate,
   uninstallSessionStartHooks,
 } from "axi-sdk-js";
 import { createSkillMarkdown } from "../src/skill.js";
@@ -61,15 +63,35 @@ describe("top level", () => {
       "overdue",
       "upcoming",
       "create",
-      "update",
+      "edit",
       "complete",
       "setup",
+      "update",
     ]) {
       const { out, code } = await run(c, "--help");
       expect(code, c).toBe(0);
       expect(out, c).toContain(`usage: ticktick-axi ${c}`);
       expect(out, c).toContain("examples:");
     }
+  });
+});
+
+describe("update (self-update)", () => {
+  it("delegates --check to the SDK built-in", async () => {
+    const { out, code } = await run("update", "--check");
+    expect(code).toBe(0);
+    expect(out).toContain("update: checked");
+    expect(runUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ args: ["--check"] }),
+    );
+  });
+
+  it("points task-edit attempts at `edit` without self-updating", async () => {
+    const { out, code } = await run("update", "p1", "t1", "--due", "tomorrow");
+    expect(code).toBe(2);
+    expect(out).toContain("does not change tasks");
+    expect(out).toContain("ticktick-axi edit <projectId> <taskId>");
+    expect(runUpdate).not.toHaveBeenCalled();
   });
 });
 

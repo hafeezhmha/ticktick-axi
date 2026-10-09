@@ -181,7 +181,7 @@ describe("create", () => {
   });
 });
 
-describe("update", () => {
+describe("edit", () => {
   const route = (onPost?: (body: unknown) => void) => [
     { method: "GET", url: /\/task\/a0+1$/, res: json(current) },
     {
@@ -197,7 +197,7 @@ describe("update", () => {
   it("previews a field-by-field diff without writing", async () => {
     const calls = mockFetch(route());
     const { out, code } = await run(
-      "update",
+      "edit",
       PROJECT,
       TASK_ID,
       "--title",
@@ -227,7 +227,7 @@ describe("update", () => {
     let sent: unknown;
     mockFetch(route((b) => (sent = b)));
     const { out, code } = await run(
-      "update",
+      "edit",
       PROJECT,
       TASK_ID,
       "--due",
@@ -251,7 +251,7 @@ describe("update", () => {
   it("is a no-op (exit 0, no write) when nothing would change", async () => {
     const calls = mockFetch(route());
     const { out, code } = await run(
-      "update",
+      "edit",
       PROJECT,
       TASK_ID,
       "--title",
@@ -274,7 +274,7 @@ describe("update", () => {
   it("handles tasks with no fields set", async () => {
     mockFetch([{ url: /./, res: json({ id: TASK_ID, projectId: PROJECT }) }]);
     const { out } = await run(
-      "update",
+      "edit",
       PROJECT,
       TASK_ID,
       "--tag",
@@ -291,20 +291,18 @@ describe("update", () => {
 
   it("requires something to change and validates ids", async () => {
     mockFetch([]);
-    expect((await run("update", PROJECT, TASK_ID)).out).toContain(
+    expect((await run("edit", PROJECT, TASK_ID)).out).toContain(
       "Nothing to change",
     );
-    expect((await run("update", PROJECT, "bad id", "--title", "x")).code).toBe(
-      2,
-    );
+    expect((await run("edit", PROJECT, "bad id", "--title", "x")).code).toBe(2);
     expect(
-      (await run("update", PROJECT, TASK_ID, "--project", "x")).out,
+      (await run("edit", PROJECT, TASK_ID, "--project", "x")).out,
     ).toContain("Moving tasks between projects is not supported");
   });
 
   it("reports a missing task as NOT_FOUND", async () => {
     mockFetch([{ url: /./, res: new Response("", { status: 404 }) }]);
-    const { out, code } = await run("update", PROJECT, TASK_ID, "--title", "x");
+    const { out, code } = await run("edit", PROJECT, TASK_ID, "--title", "x");
     expect(code).toBe(1);
     expect(out).toContain("code: NOT_FOUND");
   });

@@ -54,7 +54,7 @@ const CREATE_SPEC: FlagSpec = {
   },
 };
 
-const UPDATE_SPEC: FlagSpec = {
+const EDIT_SPEC: FlagSpec = {
   bool: ["yes"],
   value: ["title", "due", "start", "priority", "content"],
   repeat: ["tag"],
@@ -83,7 +83,7 @@ examples:
   ticktick-axi create "Call the bank" --project <projectId> --due "2026-10-12T10:30" --yes
 `;
 
-export const UPDATE_HELP = `usage: ticktick-axi update <projectId> <taskId> [flags] [--yes]
+export const EDIT_HELP = `usage: ticktick-axi edit <projectId> <taskId> [flags] [--yes]
 Changes a task. Without --yes this is a dry run showing each field's old and new value.
 Only the fields you pass are sent; a change that is already in place is a no-op.
 flags:
@@ -92,8 +92,8 @@ flags:
   --yes              actually apply it
 dates: ${DATE_FORMATS}
 examples:
-  ticktick-axi update <projectId> <taskId> --due tomorrow
-  ticktick-axi update <projectId> <taskId> --priority high --title "Renew passport" --yes
+  ticktick-axi edit <projectId> <taskId> --due tomorrow
+  ticktick-axi edit <projectId> <taskId> --priority high --title "Renew passport" --yes
 `;
 
 export const COMPLETE_HELP = `usage: ticktick-axi complete <projectId> <taskId> [--yes]
@@ -237,12 +237,12 @@ export async function createCommand(args: string[]) {
   };
 }
 
-export async function updateCommand(args: string[]) {
-  const p = parseArgs(args, UPDATE_SPEC, "update");
+export async function editCommand(args: string[]) {
+  const p = parseArgs(args, EDIT_SPEC, "edit");
   const [projectId, taskId] = expectPositionals(
     p,
     2,
-    "ticktick-axi update <projectId> <taskId> [--title ...] [--due ...] [--yes]",
+    "ticktick-axi edit <projectId> <taskId> [--title ...] [--due ...] [--yes]",
   );
   validateId(projectId, "project id");
   validateId(taskId, "task id");
@@ -338,7 +338,7 @@ export async function updateCommand(args: string[]) {
       dry_run: "nothing was sent",
       task: ref,
       changes,
-      help: [confirmHint("update", args, "apply it")],
+      help: [confirmHint("edit", args, "apply it")],
     };
   }
   const updated = await api.updateTask(client, taskId, body);
