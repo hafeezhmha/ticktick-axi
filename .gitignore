@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+.DS_Store
+.env
+.env.local
+*.log
+# Never commit TickTick credentials, even by accident.
+token.json
+config.json
+oauth-pending.json
