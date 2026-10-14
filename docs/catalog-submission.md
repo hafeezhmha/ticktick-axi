@@ -64,36 +64,36 @@ See the [no-mistakes quick start](https://kunchenguid.github.io/no-mistakes/star
 ## What must happen first
 
 1. ~~**Publish this repository publicly**~~ Done 2026-10-14: `main` is public at `https://github.com/hafeezhmha/ticktick-axi`, and the history was checked for credentials and personal data first.
-2. **Publish to npm.** The skill and README use `npx -y ticktick-axi` and `npm install -g ticktick-axi`; the name `ticktick-axi` was free on npm when checked (registry returned 404). Either `npm publish --access public` after `pnpm run build`, or let the included release-please workflow publish on the first release (it uses npm trusted publishing/OIDC, so configure the package's trusted publisher on npmjs.com first, and allow GitHub Actions to create pull requests in the repo settings, or release-please cannot open its release PR).
+2. **Publish to npm.** The skill and README use `npx -y ticktick-axi` and `npm install -g ticktick-axi`; the name `ticktick-axi` was free on npm when checked (registry returned 404). Either `npm publish --access public` after `pnpm run build`, or let the included release-please workflow publish on the first release (it uses npm trusted publishing/OIDC, so configure the package's trusted publisher on npmjs.com first, and allow GitHub Actions to create pull requests in the repo settings, or release-please cannot open its release PR; that setting was turned on 2026-10-14).
 3. **Tag a release** (release-please will cut `v0.1.0`) so the catalog review can pin an exact revision.
 4. **Verify against a real account once**, yourself: `auth login`, `projects`, `tasks`, a `create` dry run, then `create --yes` / `edit --yes` / `complete --yes` on a throwaway task. The test suite is entirely mocked, so this is the only check of real API behaviour (see "Uncertain" below).
 5. Install no-mistakes v1.30.1+ (it is not installed on this machine).
 
 ## Checklist
 
-| Item                                                                                                                  | Status                                               |
-| --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| AXI 1: TOON output via `axi-sdk-js` / `@toon-format/toon`                                                             | done                                                 |
-| AXI 2: minimal list schemas (4 fields), `--fields`, default limit 100                                                 | done                                                 |
-| AXI 3: truncation with size hints and `--full` (task content, checklist, titles)                                      | done                                                 |
-| AXI 4: totals (`count: N of M`), home summary counts, checklist `x/y done`                                            | done                                                 |
-| AXI 5: definitive empty states                                                                                        | done                                                 |
-| AXI 6: structured errors on stdout, exit 0/1/2, unknown flags rejected with valid list, idempotent no-ops, no prompts | done                                                 |
-| AXI 7: opt-in `setup hooks` (Claude Code, Codex, OpenCode) + generated skill with `--check` in CI                     | done (no session-end capture)                        |
-| AXI 8: no-args home shows live data                                                                                   | done                                                 |
-| AXI 9: contextual `help[]` hints with `<placeholders>`                                                                | done                                                 |
-| AXI 10: per-command `--help`, home shows `bin` + description, `--version` fast path                                   | done                                                 |
-| Writes gated behind `--yes`; writes never auto-retried                                                                | done                                                 |
-| Offline test suite passing; token-leak test across all commands                                                       | done                                                 |
-| MIT LICENSE (copyright hafeezhmha), README, CONTRIBUTING, VISION, AGENTS.md, CLAUDE.md                                | done                                                 |
-| release-please config and CI workflows (mirroring the official AXIs)                                                  | done (CI green; release needs Actions PR permission) |
-| Verified against a real TickTick account                                                                              | not done (out of scope here, by design)              |
-| Public GitHub repo created and pushed                                                                                 | done                                                 |
-| npm package published                                                                                                 | not done                                             |
-| Release tagged                                                                                                        | not done                                             |
-| no-mistakes installed and `init --fork-url` run                                                                       | not done                                             |
-| axi fork, catalog entry, `pnpm run docs:gen`, `git push no-mistakes`                                                  | not done                                             |
-| Independent admission review                                                                                          | not done (reviewer's step)                           |
+| Item                                                                                                                  | Status                                    |
+| --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| AXI 1: TOON output via `axi-sdk-js` / `@toon-format/toon`                                                             | done                                      |
+| AXI 2: minimal list schemas (4 fields), `--fields`, default limit 100                                                 | done                                      |
+| AXI 3: truncation with size hints and `--full` (task content, checklist, titles)                                      | done                                      |
+| AXI 4: totals (`count: N of M`), home summary counts, checklist `x/y done`                                            | done                                      |
+| AXI 5: definitive empty states                                                                                        | done                                      |
+| AXI 6: structured errors on stdout, exit 0/1/2, unknown flags rejected with valid list, idempotent no-ops, no prompts | done                                      |
+| AXI 7: opt-in `setup hooks` (Claude Code, Codex, OpenCode) + generated skill with `--check` in CI                     | done (no session-end capture)             |
+| AXI 8: no-args home shows live data                                                                                   | done                                      |
+| AXI 9: contextual `help[]` hints with `<placeholders>`                                                                | done                                      |
+| AXI 10: per-command `--help`, home shows `bin` + description, `--version` fast path                                   | done                                      |
+| Writes gated behind `--yes`; writes never auto-retried                                                                | done                                      |
+| Offline test suite passing; token-leak test across all commands                                                       | done                                      |
+| MIT LICENSE (copyright hafeezhmha), README, CONTRIBUTING, VISION, AGENTS.md, CLAUDE.md                                | done                                      |
+| release-please config and CI workflows (mirroring the official AXIs)                                                  | done (CI green; Actions PR permission on) |
+| Verified against a real TickTick account                                                                              | not done (out of scope here, by design)   |
+| Public GitHub repo created and pushed                                                                                 | done                                      |
+| npm package published                                                                                                 | not done                                  |
+| Release tagged                                                                                                        | not done                                  |
+| no-mistakes installed and `init --fork-url` run                                                                       | not done                                  |
+| axi fork, catalog entry, `pnpm run docs:gen`, `git push no-mistakes`                                                  | not done                                  |
+| Independent admission review                                                                                          | not done (reviewer's step)                |
 
 ## Uncertain (verify with a real account before submitting)
 
