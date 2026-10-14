@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/hafeezhmha/ticktick-axi/compare/ticktick-axi-v0.3.0...ticktick-axi-v0.4.0) (2026-10-14)
+
+
+### Features
+
+* delete, move, bulk complete, checklist items, clear dates, search, completed and comments ([df72c5d](https://github.com/hafeezhmha/ticktick-axi/commit/df72c5df4bfc62c8d1b9688f6483bb571e0191f4))
+
 ## [0.3.0](https://github.com/hafeezhmha/ticktick-axi/compare/ticktick-axi-v0.2.0...ticktick-axi-v0.3.0) (2026-10-14)
 
 
