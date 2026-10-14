@@ -1,6 +1,6 @@
 {
   "name": "ticktick-axi",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "packageManager": "pnpm@10.14.0",
   "description": "AXI-compliant TickTick CLI for agents — token-efficient TOON output, contextual suggestions, gated writes",
   "type": "module",
