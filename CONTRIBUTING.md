@@ -32,12 +32,22 @@ Read [VISION.md](VISION.md) first: it says what belongs in ticktick-axi and what
 
 ## Release
 
-release-please cuts releases from conventional commits on `main`. Merging its release PR publishes to npm through `.github/workflows/release-please.yml`, using npm trusted publishing (OIDC) with provenance, so no npm token is stored in the repo.
+release-please cuts releases from conventional commits on `main`. Merging its release PR stages the new version on npm through `.github/workflows/release-please.yml`, using npm trusted publishing (OIDC), so no npm token is stored in the repo and provenance is automatic.
 
-One-time setup for the maintainer:
+Staged versions are not public until the maintainer approves them with 2FA:
+
+```sh
+npm stage list ticktick-axi        # find the stage id
+npm stage approve <stage-id>       # prompts for 2FA, then publishes
+```
+
+(Or approve it on npmjs.com.) The trusted publisher allows only `npm stage publish`, so a compromised workflow cannot ship a version on its own.
+
+One-time setup for the maintainer (done for this repo):
 
 - In the repo's Settings > Actions > General, allow GitHub Actions to create and approve pull requests. Without it, release-please cannot open its release PR.
-- On npmjs.com, add this repository and `release-please.yml` as the package's trusted publisher.
+- On npmjs.com, add this repository and `release-please.yml` as the package's trusted publisher, with direct publish and dist-tags left off.
+- The package requires 2FA and disallows bypass tokens.
 
 `ci.yml` `paths-ignore`s the release-please output set (`.release-please-manifest.json`, `CHANGELOG.md`, `package.json`) on pull requests, so a release PR creates no run that would sit waiting for approval.
 

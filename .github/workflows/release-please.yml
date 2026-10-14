@@ -37,9 +37,12 @@ jobs:
       - run: pnpm run build
         if: ${{ steps.release.outputs.release_created }}
 
-      # Trusted publishing (OIDC) requires npm >= 11.5.1; the bundled npm may be older.
+      # Trusted publishing (OIDC) and `npm stage` need a recent npm; the bundled one may be older.
       - run: npm install -g npm@latest
         if: ${{ steps.release.outputs.release_created }}
 
-      - run: npm publish --access public --provenance
+      # Staged, not direct: the trusted publisher only allows `npm stage publish`.
+      # The version goes live after the maintainer approves it with 2FA
+      # (`npm stage approve <stage-id>` or npmjs.com). Provenance is automatic.
+      - run: npm stage publish
         if: ${{ steps.release.outputs.release_created }}
