@@ -1,6 +1,6 @@
 ---
 name: ticktick-axi
-description: "Read and manage TickTick tasks through the ticktick-axi CLI: see what is overdue or due today, list projects and tasks, filter by due date, priority or tag, view a task, and create, edit or complete tasks (dry run first, applied only with --yes after the person confirms). Use whenever a task touches TickTick: to-dos, reminders, deadlines, what is on someone's plate, or adding or ticking off a task."
+description: "Read and manage TickTick tasks through the ticktick-axi CLI: see what is overdue or due today, list projects and tasks, filter by due date, priority or tag, view a task, create, edit or complete tasks (one or a batch), and organise projects, project groups, kanban columns, tags and assignees (dry run first, applied only with --yes after the person confirms). Use whenever a task touches TickTick: to-dos, reminders, deadlines, what is on someone's plate, or adding or ticking off a task."
 user-invocable: false
 author: hafeezhmha
 metadata:
@@ -30,24 +30,28 @@ ticktick-axi uses TickTick's official Open API. If a command fails with `AUTH_RE
 2. `projects` lists project ids. The Inbox is not listed by the API; use `--project inbox`.
 3. `tasks` lists open tasks soonest-due first; narrow with `--project <id>`, `--overdue`, `--upcoming <days>`, `--due-before/--due-after <date>`, `--priority`, `--tag`, `--status`. `overdue` and `upcoming [--days N]` are shortcuts.
 4. `task <projectId> <taskId>` shows one task, with its checklist items numbered; both ids come from list output. `search "<keywords>"` finds tasks by text; `completed` shows what got done (default: the last 7 days); `comments` shows a task's comments.
-5. Writes are gated. `create`, `edit` (including `--clear-due`), `complete` (one task or up to 50), `move --to`, `delete`, `item add|done|undo|rename|remove` and `comment add|delete` without `--yes` print a dry run and send nothing. Prefer `complete` over `delete` for finished work. Show the dry run to the person, and rerun with `--yes` only after they say yes. Never add `--yes` on your own.
-6. Every response ends with next-step hints under `help`: follow them.
+5. Organising: `project show|members <id>`, `groups`, `columns <projectId>` and `tags` read. `project create|edit|delete`, `group create|edit|delete`, `column create|edit`, `tag create` and `assign`/`unassign` (usernames from `project members`) change things. Many tasks at once: write `{"add": [...], "update": [...]}` JSON to a file and run `batch --file <path>` (up to 50 each).
+6. Writes are gated. Every command that changes something (`create`, `edit` (including `--clear-due`), `complete` (one task or up to 50), `move --to`, `delete`, `item`, `comment add|delete`, `batch` and the organising writes above) prints a dry run without `--yes` and sends nothing. Prefer `complete` over `delete` for finished work; `project delete` takes the project's tasks with it. Show the dry run to the person, and rerun with `--yes` only after they say yes. Never add `--yes` on your own.
+7. Every response ends with next-step hints under `help`: follow them.
 
 ## Commands
 
 ```
 usage: ticktick-axi [command] [args] [flags]
-commands[19]:
+commands[29]:
   (none)=home: overdue, due today, counts
   projects, tasks, task <projectId> <taskId>, overdue, upcoming, completed, search "<keywords>"
   create "<title>" --project <id>, edit <projectId> <taskId>, complete <projectId> <taskId>...
-  move <projectId> <taskId> --to <projectId>, delete <projectId> <taskId>
+  move <projectId> <taskId> --to <projectId>, delete <projectId> <taskId>, batch --file <json>
   item add|done|undo|rename|remove <projectId> <taskId> (checklist), comments, comment add|delete
+  assign <projectId> <taskId> <username>, unassign <projectId> <taskId>
+  project show|create|edit|delete|members, groups, group create|edit|delete
+  columns <projectId>, column create|edit (kanban), tags, tag create
   auth setup|login|status|logout, setup hooks, update [--check] (upgrade ticktick-axi)
 flags:
   --help (every command), -v/-V/--version
 writes:
-  create/edit/complete/move/delete/item/comment are dry runs that send nothing until you add --yes
+  every command that changes something is a dry run that sends nothing until you add --yes
 auth:
   easiest: the person runs `npx -y ticktick-axi auth setup` in their own terminal (guided, then signs in)
   OAuth: export TICKTICK_CLIENT_ID/TICKTICK_CLIENT_SECRET, then `npx -y ticktick-axi auth login`
@@ -69,5 +73,5 @@ Run `npx -y ticktick-axi <command> --help` for per-command flags and examples.
 - Dates: YYYY-MM-DD (all-day), YYYY-MM-DDTHH:mm (timed, in the person's zone), today, tomorrow, +3d. The zone is TICKTICK_AXI_TZ or the system zone.
 - Cross-project lists use an endpoint capped at 200 tasks; when output carries a `note` about the cap, narrow with `--project`, `--priority` or `--tag`.
 - `complete` on a completed task, and `edit` with values already in place, are no-ops (exit 0).
-- There is no delete command, by design.
+- The Open API has no tag rename or delete and no column delete: a tag or column created here stays until removed in the TickTick app, so create them only when the person asks.
 - Exit codes: 0 success, 1 error, 2 usage. Errors are structured with `error`, `code`, and `help`. A `WRITE_UNCERTAIN` error means check the task before retrying.
