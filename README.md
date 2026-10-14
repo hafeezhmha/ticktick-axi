@@ -46,9 +46,6 @@ help[3]: Run `ticktick-axi upcoming --days 7` for the week ahead,Run `ticktick-a
 
 Node 20 or newer.
 
-> [!NOTE]
-> **Not on npm yet.** Until the first release, install [from a local clone](#from-a-local-clone) (below). The skill, `npx -y ticktick-axi` and `npm install -g ticktick-axi` start working once the package is published.
-
 **Agent skill** (on-demand, works in any agent that reads [Agent Skills](https://agentskills.io)):
 
 ```sh
@@ -63,7 +60,7 @@ The skill runs the CLI through `npx -y ticktick-axi`, so no global install is ne
 npm install -g ticktick-axi
 ```
 
-<a id="from-a-local-clone"></a>**From a local clone** (before the npm release, or to hack on it):
+**From a local clone** (to hack on it):
 
 ```sh
 git clone https://github.com/hafeezhmha/ticktick-axi.git
