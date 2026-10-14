@@ -372,26 +372,29 @@ Facts below come from the [Open API docs](https://developer.ticktick.com/docs#/o
 - **Tasks are addressed by project id + task id.** That is why `task`, `edit` and `complete` take both.
 - **Cross-project listing** uses `POST /task/filter`, which is documented to return at most 200 tasks. When a result hits 200, output carries a `note`; narrow with `--project`, `--priority` or `--tag`. A single project's open tasks come from `/project/{id}/data`, which has no documented cap.
 - **The filter endpoint filters dates on `startDate`, not `dueDate`**, so all due-date filtering (`--due-before`, `--overdue`, `--upcoming`) happens locally.
-- **Inbox.** `GET /project` does not list the Inbox, and the docs only mention an `inbox` alias for `/task/undone` and `/task/completeTasks`. `--project inbox` therefore filters `/task/filter` results to tasks whose `projectId` starts with `inbox`; `create` needs the inbox's real id (e.g. `inbox123456789`, visible in `tasks --project inbox`).
-- **Token lifetime and refresh** are not documented. The token endpoint lists only `grant_type=authorization_code`, so there is no automatic refresh: when TickTick rejects the token you get `TOKEN_EXPIRED` and sign in again. If the token response includes `expires_in`, the expiry is stored and shown by `auth status`. (Some community clients try a `refresh_token` grant; it is not documented, so ticktick-axi does not.)
+- **Inbox.** `GET /project` does not list the Inbox, and the docs only mention an `inbox` alias for `/task/undone` and `/task/completeTasks`. `--project inbox` therefore filters `/task/filter` results to tasks whose `projectId` starts with `inbox` (verified against a real account: `/task/filter` without `projectIds` includes Inbox tasks); `create` needs the inbox's real id (e.g. `inbox123456789`, visible in `tasks --project inbox`).
+- **Token lifetime and refresh** are not documented. The token endpoint lists only `grant_type=authorization_code`, so there is no automatic refresh: when TickTick rejects the token you get `TOKEN_EXPIRED` and sign in again. TickTick does return `expires_in` (verified: about 180 days), so the expiry is stored and shown by `auth status`. (Some community clients try a `refresh_token` grant; it is not documented, so ticktick-axi does not.)
 - **Rate limits are not documented.** 429 is handled anyway, honouring `Retry-After`.
 - **Scopes:** `tasks:read tasks:write`, both requested.
-- **Not covered (yet):** moving tasks between projects, clearing a due date, subtask (checklist item) edits, tags/habits/focus endpoints. The docs describe Update Task fields as optional but do not say how to clear one.
+- **Not covered (yet):** moving tasks between projects, clearing a due date, subtask (checklist item) edits, tags/habits/focus endpoints. The docs describe Update Task fields as optional but do not say how to clear one. Fields left out of an `edit` stay as they were (verified against a real account).
 
 ## Troubleshooting
 
-| Symptom                                     | Fix                                                                                                                                                 |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AUTH_REQUIRED`                             | Run `ticktick-axi auth login`, or `auth login --token-stdin`, or set `TICKTICK_ACCESS_TOKEN`.                                                       |
-| `TOKEN_EXPIRED`                             | The token expired or was revoked: `ticktick-axi auth login` again (or replace `TICKTICK_ACCESS_TOKEN`).                                             |
-| `FORBIDDEN`                                 | Sign in again and allow both permissions; check you can edit that project in TickTick.                                                              |
-| Browser shows "redirect_uri mismatch"       | The URI registered at developer.ticktick.com must equal `TICKTICK_REDIRECT_URI` (default `http://localhost:8765/callback`) character for character. |
-| `Port 8765 is already in use`               | Free the port, or register a different loopback URI and set `TICKTICK_REDIRECT_URI`.                                                                |
-| `auth login` hangs in an agent or over SSH  | Use `auth login --no-wait`, open the URL anywhere, then `auth login --callback-url '<url>'`.                                                        |
-| Due dates look a day off                    | Set `TICKTICK_AXI_TZ` to your zone (e.g. `Asia/Kolkata`).                                                                                           |
-| A list has a `note` about 200 tasks         | The filter endpoint's cap; add `--project`, `--priority` or `--tag`.                                                                                |
-| `WRITE_UNCERTAIN`                           | Look before retrying: `ticktick-axi task <projectId> <taskId>` or `tasks --project <id>`.                                                           |
-| `auth status` says permissions are too open | `chmod 600 ~/.config/ticktick-axi/token.json`                                                                                                       |
+| Symptom                                                      | Fix                                                                                                                                                 |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTH_REQUIRED`                                              | Run `ticktick-axi auth setup` in your own terminal, or `auth login`, or `auth login --token-stdin`, or set `TICKTICK_ACCESS_TOKEN`.                 |
+| Browser shows "At least one redirect_uri must be registered" | The redirect address went into "App Service URL". Put it in the app's **OAuth redirect URL** field instead.                                         |
+| `OAUTH_ERROR`: TickTick did not issue a token (HTTP 401)     | The Client Secret doesn't match the app. Run `ticktick-axi auth setup` again and re-enter it, copied fresh from the app page.                       |
+| `NETWORK_ERROR` behind a proxy or VPN                        | Node's `fetch` ignores `HTTPS_PROXY` by default. Set `NODE_USE_ENV_PROXY=1` (Node 22.21+ or 24+) and run the command again.                         |
+| `TOKEN_EXPIRED`                                              | The token expired or was revoked: `ticktick-axi auth login` again (or replace `TICKTICK_ACCESS_TOKEN`).                                             |
+| `FORBIDDEN`                                                  | Sign in again and allow both permissions; check you can edit that project in TickTick.                                                              |
+| Browser shows "redirect_uri mismatch"                        | The URI registered at developer.ticktick.com must equal `TICKTICK_REDIRECT_URI` (default `http://localhost:8765/callback`) character for character. |
+| `Port 8765 is already in use`                                | Free the port, or register a different loopback URI and set `TICKTICK_REDIRECT_URI`.                                                                |
+| `auth login` hangs in an agent or over SSH                   | Use `auth login --no-wait`, open the URL anywhere, then `auth login --callback-url '<url>'`.                                                        |
+| Due dates look a day off                                     | Set `TICKTICK_AXI_TZ` to your zone (e.g. `Asia/Kolkata`).                                                                                           |
+| A list has a `note` about 200 tasks                          | The filter endpoint's cap; add `--project`, `--priority` or `--tag`.                                                                                |
+| `WRITE_UNCERTAIN`                                            | Look before retrying: `ticktick-axi task <projectId> <taskId>` or `tasks --project <id>`.                                                           |
+| `auth status` says permissions are too open                  | `chmod 600 ~/.config/ticktick-axi/token.json`                                                                                                       |
 
 ## Security
 

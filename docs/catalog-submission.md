@@ -66,7 +66,7 @@ See the [no-mistakes quick start](https://kunchenguid.github.io/no-mistakes/star
 1. ~~**Publish this repository publicly**~~ Done 2026-10-14: `main` is public at `https://github.com/hafeezhmha/ticktick-axi`, and the history was checked for credentials and personal data first.
 2. ~~**Publish to npm.**~~ Done 2026-10-14: `ticktick-axi@0.1.0` published by hand (npm needs 2FA); later releases go through release-please with trusted publishing. The skill and README use `npx -y ticktick-axi` and `npm install -g ticktick-axi`; the name `ticktick-axi` was free on npm when checked (registry returned 404). Either `npm publish --access public` after `pnpm run build`, or let the included release-please workflow publish on the first release (it uses npm trusted publishing/OIDC, so configure the package's trusted publisher on npmjs.com first, and allow GitHub Actions to create pull requests in the repo settings, or release-please cannot open its release PR; that setting was turned on 2026-10-14).
 3. **Tag a release** (release-please will cut `v0.1.0`) so the catalog review can pin an exact revision.
-4. **Verify against a real account once**, yourself: `auth login`, `projects`, `tasks`, a `create` dry run, then `create --yes` / `edit --yes` / `complete --yes` on a throwaway task. The test suite is entirely mocked, so this is the only check of real API behaviour (see "Uncertain" below).
+4. ~~**Verify against a real account once**~~ Done 2026-10-14 (see the last section): `auth login`, `projects`, `tasks`, a `create` dry run, then `create --yes` / `edit --yes` / `complete --yes` on a throwaway task. The test suite is entirely mocked, so this is the only check of real API behaviour (see "Uncertain" below).
 5. Install no-mistakes v1.30.1+ (it is not installed on this machine).
 
 ## Checklist
@@ -87,7 +87,7 @@ See the [no-mistakes quick start](https://kunchenguid.github.io/no-mistakes/star
 | Offline test suite passing; token-leak test across all commands                                                       | done                                      |
 | MIT LICENSE (copyright hafeezhmha), README, CONTRIBUTING, VISION, AGENTS.md, CLAUDE.md                                | done                                      |
 | release-please config and CI workflows (mirroring the official AXIs)                                                  | done (CI green; Actions PR permission on) |
-| Verified against a real TickTick account                                                                              | not done (out of scope here, by design)   |
+| Verified against a real TickTick account                                                                              | done (2026-10-14, see below)              |
 | Public GitHub repo created and pushed                                                                                 | done                                      |
 | npm package published                                                                                                 | done (0.1.0)                              |
 | Release tagged                                                                                                        | done (`ticktick-axi-v0.2.0`)              |
@@ -95,10 +95,14 @@ See the [no-mistakes quick start](https://kunchenguid.github.io/no-mistakes/star
 | axi fork, catalog entry, `pnpm run docs:gen`, `git push no-mistakes`                                                  | not done                                  |
 | Independent admission review                                                                                          | not done (reviewer's step)                |
 
-## Uncertain (verify with a real account before submitting)
+## Verified against a real account (2026-10-14)
 
-- Whether `POST /open/v1/task/filter` with no `projectIds` returns tasks from all projects including the Inbox (the docs list every field as a filter but do not say what omitting `projectIds` does).
-- Whether `POST /open/v1/task/{taskId}` treats omitted fields as unchanged (ticktick-axi sends only changed fields plus `id`/`projectId`, as the docs mark the rest optional).
-- Whether the token response includes `expires_in` (the docs only show `access_token`).
-- Whether TickTick accepts `http://localhost:8765/callback` as a registered redirect URI exactly as written.
-- Whether `POST https://api.ticktick.com/oauth/revoke` accepts multipart form data as documented.
+All five open questions were checked with ticktick-axi 0.2.0 and a throwaway task (created, edited, completed), then a sign-out with revoke:
+
+- `POST /open/v1/task/filter` without `projectIds` includes Inbox tasks: the test task and every Inbox task appeared in the all-projects list.
+- `POST /open/v1/task/{taskId}` leaves omitted fields unchanged: an edit of the title alone kept the due date and priority.
+- The token response includes `expires_in` (about 180 days); `auth status` shows the expiry.
+- TickTick accepts `http://localhost:8765/callback` exactly as written, once it is in the app's "OAuth redirect URL" field (not "App Service URL").
+- `POST https://api.ticktick.com/oauth/revoke` with multipart form data works: TickTick confirmed the revoke.
+
+Found on the way, now fixed or documented: a stray space in a pasted Client Secret caused a bare 401 (credentials are now trimmed, and `auth setup` guides the whole sign-in), and Node's `fetch` ignores `HTTPS_PROXY` (README troubleshooting: `NODE_USE_ENV_PROXY=1`).
