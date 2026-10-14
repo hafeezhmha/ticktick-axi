@@ -3,6 +3,9 @@ name: release-please
 on:
   push:
     branches: [main]
+  # Run it by hand (Actions > release-please > Run workflow), e.g. to rebuild
+  # a release PR whose branch went stale.
+  workflow_dispatch:
 
 permissions:
   contents: write
