@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/hafeezhmha/ticktick-axi/compare/ticktick-axi-v0.2.0...ticktick-axi-v0.3.0) (2026-10-14)
+
+
+### Features
+
+* guided `auth setup` for people at a terminal ([be3c2a1](https://github.com/hafeezhmha/ticktick-axi/commit/be3c2a1a0a685e77f4bd8d5427c08c2bd5483682))
+
 ## [0.2.0](https://github.com/hafeezhmha/ticktick-axi/compare/ticktick-axi-v0.1.0...ticktick-axi-v0.2.0) (2026-10-14)
 
 
