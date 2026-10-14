@@ -198,6 +198,13 @@ Every command has `--help`. Exit codes: `0` success (including no-ops), `1` erro
 | `completed [--from] [--to] [--project]`                                 | Tasks completed in a range (default: the last 7 days)                                                          |
 | `comments <projectId> <taskId>`                                         | A task's comments                                                                                              |
 | `comment add\|delete <projectId> <taskId> ... [--yes]`                  | Add or delete a comment (dry run without `--yes`)                                                              |
+| `habits [--archived] [--section <id>]`                                  | Habits with today's check-in and the last 7 days                                                               |
+| `habit show\|sections\|checkins <...>`                                  | One habit (streak, recent days), habit sections, check-in history                                              |
+| `habit checkin\|create\|edit <...> [--yes]`                             | Check in for a day, create or change a habit (dry run without `--yes`)                                         |
+| `focus [--from] [--to] [--type]`                                        | Focus (pomodoro and stopwatch) records with total time (default: the last 7 days)                              |
+| `focus show\|log\|delete <...> [--yes]`                                 | One focus record; log or delete one (dry run without `--yes`)                                                  |
+| `countdowns [--within <days>]`                                          | Countdowns by days to go; yearly ones roll over                                                                |
+| `preferences`                                                           | The account's preferences (time zone), and whether it matches ticktick-axi's zone                              |
 | `auth setup\|login\|status\|logout`                                     | Sign in and out (`auth setup` is the guided way, for a person at a terminal)                                   |
 | `setup hooks [--project] [--remove\|--status]`                          | Opt-in session hook                                                                                            |
 | `update [--check]`                                                      | Upgrade ticktick-axi itself (axi-sdk-js built-in); task-shaped arguments are rejected with a pointer to `edit` |
@@ -366,8 +373,8 @@ help[2]: Run `ticktick-axi auth login` (OAuth) or `ticktick-axi auth login --tok
 
 ## Write gating
 
-- `create`, `edit`, `complete`, `move`, `delete`, `item` and `comment` never write without `--yes`. Without it they print `dry_run: nothing was sent`, what would change, and the exact command to confirm with. The CLI never prompts; the agent relays the dry run and adds `--yes` only after the person says yes. The bundled skill says so.
-- Already-true states are no-ops with exit 0: completing a completed task, or an edit whose values are already in place.
+- `create`, `edit`, `complete`, `move`, `delete`, `item`, `comment`, `habit checkin|create|edit` and `focus log|delete` never write without `--yes`. Without it they print `dry_run: nothing was sent`, what would change, and the exact command to confirm with. The CLI never prompts; the agent relays the dry run and adds `--yes` only after the person says yes. The bundled skill says so.
+- Already-true states are no-ops with exit 0: completing a completed task, an edit whose values are already in place, a check-in already at that value, a habit name that already exists, or a focus session already logged with the same times.
 - `delete` previews what would go, and suggests `complete` when the work is done. TickTick keeps deleted tasks in its trash: they leave every list, though a lookup by id can still find one.
 - **Retries.** Reads (GETs and the query-only `POST /task/filter`) retry up to 3 times on 429 and 5xx and on network failures, with exponential backoff (0.5 s, 1 s, 2 s) or the server's `Retry-After` when it is 30 s or less. Writes are never retried automatically: a timed-out create may already have landed. A 429 on a write means it was rejected and is safe to rerun later; a network failure during a write is reported as `WRITE_UNCERTAIN`.
 
@@ -375,7 +382,7 @@ help[2]: Run `ticktick-axi auth login` (OAuth) or `ticktick-axi auth login --tok
 
 Facts below come from the [Open API docs](https://developer.ticktick.com/docs#/openapi) as of October 2026. ticktick-axi uses no undocumented endpoints.
 
-- **Endpoints used:** `GET /open/v1/project`, `GET /open/v1/project/{projectId}/data`, `GET /open/v1/project/{projectId}/task/{taskId}`, `POST /open/v1/task/filter`, `POST /open/v1/task`, `POST /open/v1/task/{taskId}`, `POST /open/v1/project/{projectId}/task/{taskId}/complete`, `POST /open/v1/task/completeTasks`, `DELETE /open/v1/project/{projectId}/task/{taskId}`, `POST /open/v1/task/move`, `POST /open/v1/task/search`, `POST /open/v1/task/completed`, `GET`/`POST`/`DELETE` on `/open/v1/project/{projectId}/task/{taskId}/comment(s)`, plus `https://ticktick.com/oauth/authorize`, `https://ticktick.com/oauth/token` and `POST https://api.ticktick.com/oauth/revoke`.
+- **Endpoints used:** `GET /open/v1/project`, `GET /open/v1/project/{projectId}/data`, `GET /open/v1/project/{projectId}/task/{taskId}`, `POST /open/v1/task/filter`, `POST /open/v1/task`, `POST /open/v1/task/{taskId}`, `POST /open/v1/project/{projectId}/task/{taskId}/complete`, `POST /open/v1/task/completeTasks`, `DELETE /open/v1/project/{projectId}/task/{taskId}`, `POST /open/v1/task/move`, `POST /open/v1/task/search`, `POST /open/v1/task/completed`, `GET`/`POST`/`DELETE` on `/open/v1/project/{projectId}/task/{taskId}/comment(s)`, `GET /open/v1/habit`, `GET /open/v1/habit/{habitId}`, `GET /open/v1/habit/sections`, `POST /open/v1/habit`, `POST /open/v1/habit/{habitId}`, `POST /open/v1/habit/{habitId}/checkin`, `GET /open/v1/habit/checkins`, `GET /open/v1/focus`, `GET`/`DELETE /open/v1/focus/{focusId}`, `POST /open/v1/focus`, `GET /open/v1/countdown`, `POST /open/v1/preference`, plus `https://ticktick.com/oauth/authorize`, `https://ticktick.com/oauth/token` and `POST https://api.ticktick.com/oauth/revoke`.
 - **Tasks are addressed by project id + task id.** That is why `task`, `edit` and `complete` take both.
 - **Cross-project listing** uses `POST /task/filter`, which is documented to return at most 200 tasks. When a result hits 200, output carries a `note`; narrow with `--project`, `--priority` or `--tag`. A single project's open tasks come from `/project/{id}/data`, which has no documented cap.
 - **The filter endpoint filters dates on `startDate`, not `dueDate`**, so all due-date filtering (`--due-before`, `--overdue`, `--upcoming`) happens locally.
@@ -385,7 +392,10 @@ Facts below come from the [Open API docs](https://developer.ticktick.com/docs#/o
 - **Scopes:** `tasks:read tasks:write`, both requested.
 - **Clearing a date and checklists** (verified against a real account, not stated in the docs): an update with `dueDate: null` clears the due date (TickTick clears the start date with it), while `""` is ignored; `edit --clear-due` sends `null`. An update that includes `items` replaces the whole checklist, so `item` sends the current list back with one change; fields left out of an update stay as they were.
 - **Comment times** come back from the live API as epoch milliseconds, though the docs show date strings; ticktick-axi reads both.
-- **Not covered (yet):** batch create/update, assign and unassign, projects (create, update, delete, members), project groups, columns, tags, habits, focus records, countdowns and user preferences. All are documented; they are planned for the next releases.
+- **Habits cannot be deleted or archived** through the Open API (no delete endpoint; habit `status` values are not documented), so `habit create` is a no-op when the name already exists and its dry run says so. A goal other than 1 sends `type: "Real"` (numeric); the docs only show `"Boolean"`. Check-in `status` values are not documented either: a day counts as done when its value reaches the goal (or `status` is 2).
+- **Focus records** (verified against a real account): the docs imply `duration` is seconds, but TickTick ignores a sent `duration`, works it out from `startTime`/`endTime` and returns it in milliseconds; ticktick-axi reads either. `GET /focus` serves at most 30 days per query, so `focus` splits ranges up to 90 days into 30-day queries. A record must be fetched with its type; `focus show`/`delete` try pomo, then stopwatch.
+- **Countdowns** are read-only in the Open API. Yearly ones (`ignoreYear` or a yearly `repeatFlag`) roll over to the next date; lunar calendars are not accounted for.
+- **Not covered (yet):** batch create/update, assign and unassign, projects (create, update, delete, members), project groups, columns and tags. All are documented; they are planned for the next releases.
 
 ## Troubleshooting
 

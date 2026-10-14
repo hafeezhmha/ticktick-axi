@@ -20,10 +20,11 @@ Command behavior is owned by [README.md](README.md). Contributor workflow, relea
 - `src/cli.ts`: `DESCRIPTION`, `TOP_HELP`, command and help maps.
 - `src/http.ts`: the API client: bearer auth, read retries, error translation, redaction.
 - `src/api.ts`: one function per documented endpoint, plus id validation.
+- `src/api-life.ts`: the same for habits, focus records, countdowns and preferences, plus stamp/time helpers (the live API sends some times as epoch ms).
 - `src/query.ts`: which endpoint serves a listing, and client-side due-date filters and sorting.
 - `src/dates.ts`, `src/format.ts`: TickTick dates and time zones; priority and status maps, rows, `--fields`, truncation.
 - `src/config.ts`, `src/oauth.ts`: config dir, credentials and token storage (0700 dir, 0600 file); authorize URL, code exchange, loopback listener.
-- `src/commands/*.ts`: one file per command group, each exporting its handler and `*_HELP` (`write.ts`: create, edit, complete, move, delete; `items.ts`: checklist; `search.ts`: search, completed; `comments.ts`).
+- `src/commands/*.ts`: one file per command group, each exporting its handler and `*_HELP` (`write.ts`: create, edit, complete, move, delete; `items.ts`: checklist; `search.ts`: search, completed; `comments.ts`; `habits.ts`: habits, habit; `focus.ts`; `countdowns.ts`; `preferences.ts`).
 
 ## Development
 
