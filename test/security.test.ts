@@ -12,6 +12,15 @@ import {
 } from "./support.js";
 
 const TASK = "a00000000000000000000001";
+const HABIT = "b00000000000000000000001";
+const FOCUS = "d00000000000000000000001";
+const habit = { id: HABIT, name: "Read", goal: 1, status: 0 };
+const focus = {
+  id: FOCUS,
+  type: 0,
+  startTime: "2026-10-08T03:30:00+0000",
+  endTime: "2026-10-08T03:55:00+0000",
+};
 
 /** Every command an agent can run, reads and confirmed writes alike. */
 const COMMANDS: string[][] = [
@@ -36,6 +45,19 @@ const COMMANDS: string[][] = [
   ["complete", PROJECT, TASK, "a00000000000000000000002", "--yes"],
   ["item", "add", PROJECT, TASK, "x", "--yes"],
   ["edit", PROJECT, TASK, "--clear-due", "--yes"],
+  ["habits"],
+  ["habit", "show", HABIT],
+  ["habit", "sections"],
+  ["habit", "checkins"],
+  ["habit", "checkin", HABIT, "--yes"],
+  ["habit", "create", "Z", "--yes"],
+  ["habit", "edit", HABIT, "--name", "Q", "--yes"],
+  ["focus"],
+  ["focus", "show", FOCUS],
+  ["focus", "log", "--minutes", "5", "--yes"],
+  ["focus", "delete", FOCUS, "--yes"],
+  ["countdowns"],
+  ["preferences"],
   ["auth", "logout"],
 ];
 
@@ -49,6 +71,16 @@ describe("tokens never reach output", () => {
   it("on success paths", async () => {
     mockFetch([
       { url: /\/project$/, res: json([{ id: PROJECT, name: "Work" }]) },
+      { method: "GET", url: /\/habit\/checkins\?/, res: json([]) },
+      { method: "GET", url: /\/habit\/sections$/, res: json([]) },
+      { method: "GET", url: /\/habit$/, res: json([habit]) },
+      { url: /\/habit\//, res: json(habit) },
+      { method: "POST", url: /\/habit$/, res: json(habit) },
+      { method: "GET", url: /\/focus\?/, res: json([focus]) },
+      { method: "GET", url: /\/focus\//, res: json(focus) },
+      { method: "POST", url: /\/focus$/, res: json(focus) },
+      { url: /\/countdown$/, res: json([{ id: "e1", date: 20261101 }]) },
+      { url: /\/preference$/, res: json({ timeZone: "Asia/Kolkata" }) },
       { url: /\/data$/, res: json({ tasks: fixtureTasks() }) },
       { url: /\/task\/filter$/, res: json(fixtureTasks()) },
       { method: "GET", url: /\/task\//, res: json(fixtureTasks()[0]) },
