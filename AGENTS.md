@@ -20,6 +20,7 @@ Command behavior is owned by [README.md](README.md). Contributor workflow, relea
 - `src/cli.ts`: `DESCRIPTION`, `TOP_HELP`, command and help maps.
 - `src/http.ts`: the API client: bearer auth, read retries, error translation, redaction.
 - `src/api.ts`: one function per documented task, comment and project-list endpoint, plus id validation; `src/api-org.ts`: projects, groups, columns, tags, assign and batch.
+- `src/api-life.ts`: the same for habits, focus records, countdowns and preferences, plus stamp/time helpers (the live API sends some times as epoch ms).
 - `src/query.ts`: which endpoint serves a listing, and client-side due-date filters and sorting.
 - `src/dates.ts`, `src/format.ts`: TickTick dates and time zones; priority and status maps, rows, `--fields`, truncation.
 - `src/config.ts`, `src/oauth.ts`: config dir, credentials and token storage (0700 dir, 0600 file); authorize URL, code exchange, loopback listener.

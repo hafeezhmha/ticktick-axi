@@ -20,14 +20,26 @@ import {
   COMMENTS_HELP,
   commentsCommand,
 } from "./commands/comments.js";
+import { COUNTDOWNS_HELP, countdownsCommand } from "./commands/countdowns.js";
+import { FOCUS_HELP, focusCommand } from "./commands/focus.js";
 import {
   GROUP_HELP,
   groupCommand,
   GROUPS_HELP,
   groupsCommand,
 } from "./commands/groups.js";
+import {
+  HABIT_HELP,
+  habitCommand,
+  HABITS_HELP,
+  habitsCommand,
+} from "./commands/habits.js";
 import { homeCommand } from "./commands/home.js";
 import { ITEM_HELP, itemCommand } from "./commands/items.js";
+import {
+  PREFERENCES_HELP,
+  preferencesCommand,
+} from "./commands/preferences.js";
 import { PROJECT_HELP, projectCommand } from "./commands/project.js";
 import { PROJECTS_HELP, projectsCommand } from "./commands/projects.js";
 import {
@@ -71,7 +83,7 @@ export const DESCRIPTION =
   "Agent ergonomic CLI for TickTick tasks via the official Open API. Read freely; writes are dry runs until --yes.";
 
 export const TOP_HELP = `usage: ticktick-axi [command] [args] [flags]
-commands[29]:
+commands[34]:
   (none)=home: overdue, due today, counts
   projects, tasks, task <projectId> <taskId>, overdue, upcoming, completed, search "<keywords>"
   create "<title>" --project <id>, edit <projectId> <taskId>, complete <projectId> <taskId>...
@@ -80,6 +92,7 @@ commands[29]:
   assign <projectId> <taskId> <username>, unassign <projectId> <taskId>
   project show|create|edit|delete|members, groups, group create|edit|delete
   columns <projectId>, column create|edit (kanban), tags, tag create
+  habits, habit show|sections|checkins|checkin|create|edit, focus [show|log|delete], countdowns, preferences
   auth setup|login|status|logout, setup hooks, update [--check] (upgrade ticktick-axi)
 flags:
   --help (every command), -v/-V/--version
@@ -126,6 +139,11 @@ const COMMAND_HELP: Record<string, string> = {
   assign: ASSIGN_HELP,
   unassign: UNASSIGN_HELP,
   batch: BATCH_HELP,
+  habits: HABITS_HELP,
+  habit: HABIT_HELP,
+  focus: FOCUS_HELP,
+  countdowns: COUNTDOWNS_HELP,
+  preferences: PREFERENCES_HELP,
   setup: SETUP_HELP,
   update: UPDATE_HELP,
 };
@@ -157,6 +175,11 @@ const COMMANDS = {
   assign: assignCommand,
   unassign: unassignCommand,
   batch: batchCommand,
+  habits: habitsCommand,
+  habit: habitCommand,
+  focus: focusCommand,
+  countdowns: countdownsCommand,
+  preferences: preferencesCommand,
   setup: setupCommand,
 };
 

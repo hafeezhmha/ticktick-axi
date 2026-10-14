@@ -1,6 +1,6 @@
 ---
 name: ticktick-axi
-description: "Read and manage TickTick tasks through the ticktick-axi CLI: see what is overdue or due today, list projects and tasks, filter by due date, priority or tag, view a task, create, edit or complete tasks (one or a batch), and organise projects, project groups, kanban columns, tags and assignees (dry run first, applied only with --yes after the person confirms). Use whenever a task touches TickTick: to-dos, reminders, deadlines, what is on someone's plate, or adding or ticking off a task."
+description: "Read and manage TickTick tasks through the ticktick-axi CLI: see what is overdue or due today, list projects and tasks, filter by due date, priority or tag, view a task, create, edit or complete tasks (one or a batch), organise projects, project groups, kanban columns, tags and assignees, and track habits and check-ins, focus (pomodoro) records and countdowns (dry run first, applied only with --yes after the person confirms). Use whenever a task touches TickTick: to-dos, reminders, deadlines, what is on someone's plate, adding or ticking off a task, checking in a habit, or logging focus time."
 user-invocable: false
 author: hafeezhmha
 metadata:
@@ -32,13 +32,14 @@ ticktick-axi uses TickTick's official Open API. If a command fails with `AUTH_RE
 4. `task <projectId> <taskId>` shows one task, with its checklist items numbered; both ids come from list output. `search "<keywords>"` finds tasks by text; `completed` shows what got done (default: the last 7 days); `comments` shows a task's comments.
 5. Organising: `project show|members <id>`, `groups`, `columns <projectId>` and `tags` read. `project create|edit|delete`, `group create|edit|delete`, `column create|edit`, `tag create` and `assign`/`unassign` (usernames from `project members`) change things. Many tasks at once: write `{"add": [...], "update": [...]}` JSON to a file and run `batch --file <path>` (up to 50 each).
 6. Writes are gated. Every command that changes something (`create`, `edit` (including `--clear-due`), `complete` (one task or up to 50), `move --to`, `delete`, `item`, `comment add|delete`, `batch` and the organising writes above) prints a dry run without `--yes` and sends nothing. Prefer `complete` over `delete` for finished work; `project delete` takes the project's tasks with it. Show the dry run to the person, and rerun with `--yes` only after they say yes. Never add `--yes` on your own.
-7. Every response ends with next-step hints under `help`: follow them.
+7. Habits, focus and countdowns: `habits` shows today's check-in and the last 7 days per habit; `habit show <habitId>` adds the streak; `habit checkin <habitId> [--date] [--value]` checks one in; `habit create|edit` change habits (the API cannot delete a habit, so confirm the name first). `focus` lists focus sessions (default: the last 7 days) with total time; `focus log --minutes <n>` records one that just ended; `focus delete`. `countdowns` lists dates by days to go; `preferences` shows the account time zone. All these writes are dry runs until `--yes` too.
+8. Every response ends with next-step hints under `help`: follow them.
 
 ## Commands
 
 ```
 usage: ticktick-axi [command] [args] [flags]
-commands[29]:
+commands[34]:
   (none)=home: overdue, due today, counts
   projects, tasks, task <projectId> <taskId>, overdue, upcoming, completed, search "<keywords>"
   create "<title>" --project <id>, edit <projectId> <taskId>, complete <projectId> <taskId>...
@@ -47,6 +48,7 @@ commands[29]:
   assign <projectId> <taskId> <username>, unassign <projectId> <taskId>
   project show|create|edit|delete|members, groups, group create|edit|delete
   columns <projectId>, column create|edit (kanban), tags, tag create
+  habits, habit show|sections|checkins|checkin|create|edit, focus [show|log|delete], countdowns, preferences
   auth setup|login|status|logout, setup hooks, update [--check] (upgrade ticktick-axi)
 flags:
   --help (every command), -v/-V/--version
