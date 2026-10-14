@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/hafeezhmha/ticktick-axi/compare/ticktick-axi-v0.4.0...ticktick-axi-v0.5.0) (2026-10-14)
+
+
+### Features
+
+* habits, habit check-ins, focus records, countdowns and preferences ([e581c2b](https://github.com/hafeezhmha/ticktick-axi/commit/e581c2bf9f3fb5cb1383ff434cf6d01bbae567ca))
+* projects, project groups, columns, tags, assign/unassign and batch create/update ([dc43c38](https://github.com/hafeezhmha/ticktick-axi/commit/dc43c38044fe4eb368e286125451ee0e691fce5e))
+
 ## [0.4.0](https://github.com/hafeezhmha/ticktick-axi/compare/ticktick-axi-v0.3.0...ticktick-axi-v0.4.0) (2026-10-14)
 
 
