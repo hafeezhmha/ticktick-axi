@@ -6,8 +6,8 @@ import { DESCRIPTION, TOP_HELP } from "./cli.js";
 export const SKILL_NAME = "ticktick-axi";
 
 export const SKILL_DESCRIPTION =
-  "Read and manage TickTick tasks through the ticktick-axi CLI: see what is overdue or due today, list projects and tasks, filter by due date, priority or tag, view a task, and create, edit or complete tasks (dry run first, applied only with --yes after the person confirms). " +
-  "Use whenever a task touches TickTick: to-dos, reminders, deadlines, what is on someone's plate, or adding or ticking off a task.";
+  "Read and manage TickTick tasks through the ticktick-axi CLI: see what is overdue or due today, list projects and tasks, filter by due date, priority or tag, view a task, and create, edit or complete tasks (dry run first, applied only with --yes after the person confirms); also habits and check-ins, focus (pomodoro) records, countdowns and the account time zone. " +
+  "Use whenever a task touches TickTick: to-dos, reminders, deadlines, what is on someone's plate, adding or ticking off a task, checking in a habit, or logging focus time.";
 
 /** The CLI's own help with commands rewritten for npx (no global install). */
 function npxHelp(): string {
@@ -51,7 +51,8 @@ ticktick-axi uses TickTick's official Open API. If a command fails with \`AUTH_R
 3. \`tasks\` lists open tasks soonest-due first; narrow with \`--project <id>\`, \`--overdue\`, \`--upcoming <days>\`, \`--due-before/--due-after <date>\`, \`--priority\`, \`--tag\`, \`--status\`. \`overdue\` and \`upcoming [--days N]\` are shortcuts.
 4. \`task <projectId> <taskId>\` shows one task, with its checklist items numbered; both ids come from list output. \`search "<keywords>"\` finds tasks by text; \`completed\` shows what got done (default: the last 7 days); \`comments\` shows a task's comments.
 5. Writes are gated. \`create\`, \`edit\` (including \`--clear-due\`), \`complete\` (one task or up to 50), \`move --to\`, \`delete\`, \`item add|done|undo|rename|remove\` and \`comment add|delete\` without \`--yes\` print a dry run and send nothing. Prefer \`complete\` over \`delete\` for finished work. Show the dry run to the person, and rerun with \`--yes\` only after they say yes. Never add \`--yes\` on your own.
-6. Every response ends with next-step hints under \`help\`: follow them.
+6. Habits, focus and countdowns: \`habits\` shows today's check-in and the last 7 days per habit; \`habit show <habitId>\` adds the streak; \`habit checkin <habitId> [--date] [--value]\` checks one in; \`habit create|edit\` change habits (the API cannot delete a habit, so confirm the name first). \`focus\` lists focus sessions (default: the last 7 days) with total time; \`focus log --minutes <n>\` records one that just ended; \`focus delete\`. \`countdowns\` lists dates by days to go; \`preferences\` shows the account time zone. All these writes are dry runs until \`--yes\` too.
+7. Every response ends with next-step hints under \`help\`: follow them.
 
 ## Commands
 

@@ -7,8 +7,20 @@ import {
   COMMENTS_HELP,
   commentsCommand,
 } from "./commands/comments.js";
+import { COUNTDOWNS_HELP, countdownsCommand } from "./commands/countdowns.js";
+import { FOCUS_HELP, focusCommand } from "./commands/focus.js";
+import {
+  HABIT_HELP,
+  habitCommand,
+  HABITS_HELP,
+  habitsCommand,
+} from "./commands/habits.js";
 import { homeCommand } from "./commands/home.js";
 import { ITEM_HELP, itemCommand } from "./commands/items.js";
+import {
+  PREFERENCES_HELP,
+  preferencesCommand,
+} from "./commands/preferences.js";
 import { PROJECTS_HELP, projectsCommand } from "./commands/projects.js";
 import {
   COMPLETED_HELP,
@@ -45,17 +57,19 @@ export const DESCRIPTION =
   "Agent ergonomic CLI for TickTick tasks via the official Open API. Read freely; writes are dry runs until --yes.";
 
 export const TOP_HELP = `usage: ticktick-axi [command] [args] [flags]
-commands[19]:
+commands[24]:
   (none)=home: overdue, due today, counts
   projects, tasks, task <projectId> <taskId>, overdue, upcoming, completed, search "<keywords>"
   create "<title>" --project <id>, edit <projectId> <taskId>, complete <projectId> <taskId>...
   move <projectId> <taskId> --to <projectId>, delete <projectId> <taskId>
   item add|done|undo|rename|remove <projectId> <taskId> (checklist), comments, comment add|delete
+  habits, habit show|sections|checkins|checkin|create|edit, focus [show|log|delete], countdowns, preferences
   auth setup|login|status|logout, setup hooks, update [--check] (upgrade ticktick-axi)
 flags:
   --help (every command), -v/-V/--version
 writes:
-  create/edit/complete/move/delete/item/comment are dry runs that send nothing until you add --yes
+  create/edit/complete/move/delete/item/comment, habit checkin/create/edit and focus log/delete
+  are dry runs that send nothing until you add --yes
 auth:
   easiest: the person runs \`ticktick-axi auth setup\` in their own terminal (guided, then signs in)
   OAuth: export TICKTICK_CLIENT_ID/TICKTICK_CLIENT_SECRET, then \`ticktick-axi auth login\`
@@ -87,6 +101,11 @@ const COMMAND_HELP: Record<string, string> = {
   completed: COMPLETED_HELP,
   comments: COMMENTS_HELP,
   comment: COMMENT_HELP,
+  habits: HABITS_HELP,
+  habit: HABIT_HELP,
+  focus: FOCUS_HELP,
+  countdowns: COUNTDOWNS_HELP,
+  preferences: PREFERENCES_HELP,
   setup: SETUP_HELP,
   update: UPDATE_HELP,
 };
@@ -108,6 +127,11 @@ const COMMANDS = {
   completed: completedCommand,
   comments: commentsCommand,
   comment: commentCommand,
+  habits: habitsCommand,
+  habit: habitCommand,
+  focus: focusCommand,
+  countdowns: countdownsCommand,
+  preferences: preferencesCommand,
   setup: setupCommand,
 };
 

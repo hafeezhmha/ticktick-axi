@@ -1,6 +1,6 @@
 ---
 name: ticktick-axi
-description: "Read and manage TickTick tasks through the ticktick-axi CLI: see what is overdue or due today, list projects and tasks, filter by due date, priority or tag, view a task, and create, edit or complete tasks (dry run first, applied only with --yes after the person confirms). Use whenever a task touches TickTick: to-dos, reminders, deadlines, what is on someone's plate, or adding or ticking off a task."
+description: "Read and manage TickTick tasks through the ticktick-axi CLI: see what is overdue or due today, list projects and tasks, filter by due date, priority or tag, view a task, and create, edit or complete tasks (dry run first, applied only with --yes after the person confirms); also habits and check-ins, focus (pomodoro) records, countdowns and the account time zone. Use whenever a task touches TickTick: to-dos, reminders, deadlines, what is on someone's plate, adding or ticking off a task, checking in a habit, or logging focus time."
 user-invocable: false
 author: hafeezhmha
 metadata:
@@ -31,23 +31,26 @@ ticktick-axi uses TickTick's official Open API. If a command fails with `AUTH_RE
 3. `tasks` lists open tasks soonest-due first; narrow with `--project <id>`, `--overdue`, `--upcoming <days>`, `--due-before/--due-after <date>`, `--priority`, `--tag`, `--status`. `overdue` and `upcoming [--days N]` are shortcuts.
 4. `task <projectId> <taskId>` shows one task, with its checklist items numbered; both ids come from list output. `search "<keywords>"` finds tasks by text; `completed` shows what got done (default: the last 7 days); `comments` shows a task's comments.
 5. Writes are gated. `create`, `edit` (including `--clear-due`), `complete` (one task or up to 50), `move --to`, `delete`, `item add|done|undo|rename|remove` and `comment add|delete` without `--yes` print a dry run and send nothing. Prefer `complete` over `delete` for finished work. Show the dry run to the person, and rerun with `--yes` only after they say yes. Never add `--yes` on your own.
-6. Every response ends with next-step hints under `help`: follow them.
+6. Habits, focus and countdowns: `habits` shows today's check-in and the last 7 days per habit; `habit show <habitId>` adds the streak; `habit checkin <habitId> [--date] [--value]` checks one in; `habit create|edit` change habits (the API cannot delete a habit, so confirm the name first). `focus` lists focus sessions (default: the last 7 days) with total time; `focus log --minutes <n>` records one that just ended; `focus delete`. `countdowns` lists dates by days to go; `preferences` shows the account time zone. All these writes are dry runs until `--yes` too.
+7. Every response ends with next-step hints under `help`: follow them.
 
 ## Commands
 
 ```
 usage: ticktick-axi [command] [args] [flags]
-commands[19]:
+commands[24]:
   (none)=home: overdue, due today, counts
   projects, tasks, task <projectId> <taskId>, overdue, upcoming, completed, search "<keywords>"
   create "<title>" --project <id>, edit <projectId> <taskId>, complete <projectId> <taskId>...
   move <projectId> <taskId> --to <projectId>, delete <projectId> <taskId>
   item add|done|undo|rename|remove <projectId> <taskId> (checklist), comments, comment add|delete
+  habits, habit show|sections|checkins|checkin|create|edit, focus [show|log|delete], countdowns, preferences
   auth setup|login|status|logout, setup hooks, update [--check] (upgrade ticktick-axi)
 flags:
   --help (every command), -v/-V/--version
 writes:
-  create/edit/complete/move/delete/item/comment are dry runs that send nothing until you add --yes
+  create/edit/complete/move/delete/item/comment, habit checkin/create/edit and focus log/delete
+  are dry runs that send nothing until you add --yes
 auth:
   easiest: the person runs `npx -y ticktick-axi auth setup` in their own terminal (guided, then signs in)
   OAuth: export TICKTICK_CLIENT_ID/TICKTICK_CLIENT_SECRET, then `npx -y ticktick-axi auth login`
