@@ -132,6 +132,32 @@ describe("client config", () => {
     writeFileSync(join(dir, "config.json"), "[]");
     expect(readClientConfig()).toBeNull();
   });
+  it("strips whitespace a paste may carry, from env and file alike", () => {
+    vi.stubEnv("TICKTICK_CLIENT_ID", " id-env\n");
+    vi.stubEnv("TICKTICK_CLIENT_SECRET", `\t${FAKE_SECRET} \n`);
+    expect(readClientConfig()).toMatchObject({
+      clientId: "id-env",
+      clientSecret: FAKE_SECRET,
+    });
+    vi.stubEnv("TICKTICK_CLIENT_ID", "");
+    vi.stubEnv("TICKTICK_CLIENT_SECRET", "");
+    writeFileSync(
+      join(dir, "config.json"),
+      JSON.stringify({
+        clientId: "id-file ",
+        clientSecret: ` ${FAKE_SECRET}\n`,
+      }),
+    );
+    expect(readClientConfig()).toMatchObject({
+      clientId: "id-file",
+      clientSecret: FAKE_SECRET,
+    });
+    writeFileSync(
+      join(dir, "config.json"),
+      JSON.stringify({ clientId: "a", clientSecret: "  " }),
+    );
+    expect(readClientConfig()).toBeNull();
+  });
 });
 
 describe("pending login", () => {

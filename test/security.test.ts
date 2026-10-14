@@ -26,6 +26,7 @@ const COMMANDS: string[][] = [
   ["edit", PROJECT, TASK, "--title", "Y", "--yes"],
   ["complete", PROJECT, TASK, "--yes"],
   ["auth", "status", "--verify"],
+  ["auth", "setup"],
   ["auth", "logout"],
 ];
 

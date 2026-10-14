@@ -1,9 +1,12 @@
 import { homedir } from "node:os";
+import { createInterface } from "node:readline";
 import { bool, intFlag, parseArgs, str } from "../args.js";
 import { api, getClient } from "../api.js";
 import {
   clearPending,
+  cleanCredential,
   clientConfigPath,
+  DEFAULT_REDIRECT_URI,
   deleteStoredToken,
   filePermissions,
   readClientConfig,
@@ -11,6 +14,7 @@ import {
   readStoredToken,
   readToken,
   tokenPath,
+  writeClientConfig,
   writePending,
   writeStoredToken,
   type ClientConfig,
@@ -39,11 +43,36 @@ export const authIo = {
     for await (const chunk of process.stdin) chunks.push(Buffer.from(chunk));
     return Buffer.concat(chunks).toString("utf-8");
   },
+  /** Ask the person at the terminal (prompt on stderr); `hidden` for secrets. */
+  ask: (question: string, hidden = false): Promise<string> =>
+    new Promise((resolve) => {
+      const rl = createInterface({
+        input: process.stdin,
+        output: process.stderr,
+        terminal: true,
+      });
+      rl.question(question, (answer) => {
+        rl.close();
+        if (hidden) process.stderr.write("\n");
+        resolve(answer);
+      });
+      // The prompt is already written; from here on, echo nothing.
+      if (hidden) {
+        (
+          rl as unknown as { _writeToOutput: (s: string) => void }
+        )._writeToOutput = () => {};
+      }
+    }),
 };
 
 const PENDING_MAX_AGE_MS = 15 * 60 * 1000;
 
-export const AUTH_HELP = `usage: ticktick-axi auth <login|status|logout> [flags]
+export const AUTH_HELP = `usage: ticktick-axi auth <setup|login|status|logout> [flags]
+setup                       for the person, in their own terminal: walks through creating the TickTick
+                            app, asks for its Client ID and secret (hidden), saves them to config.json
+                            (600), then signs in. Never prompts an agent: without a terminal it exits 2
+  --no-login                only save the credentials; sign in later with \`auth login\`
+  --timeout <seconds>       how long to wait for the redirect (default 300)
 login                       OAuth sign-in: prints the authorize URL (stderr) and waits for the
                             redirect on the loopback redirect URI (default http://localhost:8765/callback)
   --timeout <seconds>       how long to wait for the redirect (default 300)
@@ -54,14 +83,16 @@ status                      where the token comes from, scope, expiry, file perm
   --verify                  also make one read call to confirm TickTick accepts the token
 logout                      delete the stored token (idempotent)
   --revoke                  also revoke it at TickTick first (OAuth tokens)
-setup (OAuth):
-  1. Register an app at https://developer.ticktick.com/manage; set its redirect URI to
-     http://localhost:8765/callback (or your own loopback URI + TICKTICK_REDIRECT_URI)
+OAuth without prompts (what \`auth setup\` does for you):
+  1. Register an app at https://developer.ticktick.com/manage; set its "OAuth redirect URL"
+     (not "App Service URL") to http://localhost:8765/callback (or your own loopback URI +
+     TICKTICK_REDIRECT_URI)
   2. export TICKTICK_CLIENT_ID=<id> TICKTICK_CLIENT_SECRET=<secret>
      (or put {"clientId","clientSecret","redirectUri"} in ${tildify(clientConfigPath())})
   3. ticktick-axi auth login
 env: TICKTICK_ACCESS_TOKEN overrides the stored token.
 examples:
+  ticktick-axi auth setup
   ticktick-axi auth login
   ticktick-axi auth login --no-wait
   ticktick-axi auth login --callback-url 'http://localhost:8765/callback?code=...&state=...'
@@ -77,6 +108,8 @@ function tildify(p: string): string {
 export async function authCommand(args: string[]) {
   const [sub, ...rest] = args;
   switch (sub) {
+    case "setup":
+      return setup(rest);
     case "login":
       return login(rest);
     case "status":
@@ -88,7 +121,7 @@ export async function authCommand(args: string[]) {
     default:
       throw usage(
         `unknown auth subcommand "${sub}"`,
-        "Use `ticktick-axi auth login`, `auth status`, or `auth logout`",
+        "Use `ticktick-axi auth setup`, `auth login`, `auth status`, or `auth logout`",
       );
   }
 }
@@ -99,7 +132,8 @@ function requireClient(): ClientConfig {
     throw fail(
       "CONFIG_ERROR",
       "No TickTick OAuth app credentials found",
-      "Register an app at https://developer.ticktick.com/manage (redirect URI http://localhost:8765/callback)",
+      "Easiest: ask the person to run `npx -y ticktick-axi auth setup` in their own terminal; it walks them through it",
+      "Register an app at https://developer.ticktick.com/manage (OAuth redirect URL http://localhost:8765/callback)",
       "Then export TICKTICK_CLIENT_ID=<id> TICKTICK_CLIENT_SECRET=<secret> and rerun `ticktick-axi auth login`",
       "Or skip OAuth: `ticktick-axi auth login --token-stdin` with a personal API token",
     );
@@ -229,10 +263,10 @@ async function login(args: string[]) {
   }
 
   const cfg = requireClient();
-  const state = newState();
-  const url = buildAuthorizeUrl(cfg, state);
 
   if (bool(p, "no-wait")) {
+    const state = newState();
+    const url = buildAuthorizeUrl(cfg, state);
     writePending({
       state,
       redirectUri: cfg.redirectUri,
@@ -251,6 +285,13 @@ async function login(args: string[]) {
     };
   }
 
+  return waitAndFinish(cfg, intFlag(p, "timeout", 300, 10, 3600));
+}
+
+/** Print the authorize URL, wait for the loopback redirect, store the token. */
+async function waitAndFinish(cfg: ClientConfig, timeout: number) {
+  const state = newState();
+  const url = buildAuthorizeUrl(cfg, state);
   if (!isLoopback(cfg.redirectUri)) {
     throw fail(
       "CONFIG_ERROR",
@@ -259,12 +300,96 @@ async function login(args: string[]) {
       "Or register http://localhost:8765/callback and unset TICKTICK_REDIRECT_URI",
     );
   }
-  const timeout = intFlag(p, "timeout", 300, 10, 3600);
   authIo.stderr(
     `Open this URL in your browser to let ticktick-axi read and write your TickTick tasks:\n\n  ${url}\n\nWaiting up to ${timeout}s for the redirect to ${cfg.redirectUri} ...\n`,
   );
   const code = await waitForCallback(cfg.redirectUri, state, timeout * 1000);
   return finishOAuth(cfg, code);
+}
+
+async function yes(question: string): Promise<boolean> {
+  const a = (await authIo.ask(question)).trim().toLowerCase();
+  return a === "" || a.startsWith("y");
+}
+
+/**
+ * For a person at a terminal: the whole OAuth setup in one run. An agent never
+ * reaches a prompt: without a TTY this is a usage error that says what to do.
+ */
+async function setup(args: string[]) {
+  const p = parseArgs(
+    args,
+    { bool: ["no-login"], value: ["timeout"] },
+    "auth setup",
+  );
+  if (p.positionals.length) {
+    throw usage(`unexpected argument "${p.positionals[0]}"`);
+  }
+  if (!authIo.stdinIsTTY()) {
+    throw usage(
+      "auth setup asks the person for their TickTick app credentials, so it only runs in their own terminal",
+      "Ask the person to run `npx -y ticktick-axi auth setup` in their own terminal",
+      "Or, without prompts: export TICKTICK_CLIENT_ID and TICKTICK_CLIENT_SECRET, then run `ticktick-axi auth login`",
+    );
+  }
+  const timeout = intFlag(p, "timeout", 300, 10, 3600);
+  const say = (line = "") => authIo.stderr(`${line}\n`);
+  // Only the saved file counts as "already set up"; exported values are noted below.
+  const saved = readClientConfig({
+    ...process.env,
+    TICKTICK_CLIENT_ID: "",
+    TICKTICK_CLIENT_SECRET: "",
+  });
+  const redirectUri =
+    process.env.TICKTICK_REDIRECT_URI ||
+    saved?.redirectUri ||
+    DEFAULT_REDIRECT_URI;
+  const where = tildify(clientConfigPath());
+
+  say("Connect ticktick-axi to your TickTick account (about 2 minutes).");
+  say();
+  say("1. Open https://developer.ticktick.com/manage and sign in.");
+  say('   Open your app, or create one with "+App Name" (any name).');
+  say(
+    '2. Set the field "OAuth redirect URL" (not "App Service URL") to exactly:',
+  );
+  say(`     ${redirectUri}`);
+  say("   and save.");
+  say("3. The same page shows the Client ID and Client Secret.");
+  say();
+
+  let cfg: ClientConfig;
+  if (saved && (await yes(`Use the credentials saved in ${where}? [Y/n] `))) {
+    cfg = { ...saved, redirectUri };
+  } else {
+    const clientId = cleanCredential(await authIo.ask("Client ID: "));
+    const clientSecret = cleanCredential(
+      await authIo.ask("Client Secret (typing is hidden): ", true),
+    );
+    if (!clientId || !clientSecret) {
+      throw usage(
+        "Both the Client ID and the Client Secret are needed",
+        "Run `ticktick-axi auth setup` again with both from https://developer.ticktick.com/manage",
+      );
+    }
+    writeClientConfig(clientId, clientSecret);
+    say(`Saved to ${where} (permissions 600).`);
+    cfg = { clientId, clientSecret, redirectUri, source: "file" };
+  }
+
+  const out: Record<string, unknown> = {
+    setup: `OAuth app credentials in ${where}`,
+  };
+  if (process.env.TICKTICK_CLIENT_ID || process.env.TICKTICK_CLIENT_SECRET) {
+    out.note =
+      "TICKTICK_CLIENT_ID/TICKTICK_CLIENT_SECRET are set in this shell and override config.json; unset them or open a new terminal";
+  }
+  if (bool(p, "no-login")) {
+    out.help = ["Run `ticktick-axi auth login` to sign in"];
+    return out;
+  }
+  say();
+  return { ...out, ...(await waitAndFinish(cfg, timeout)) };
 }
 
 async function status(args: string[]) {

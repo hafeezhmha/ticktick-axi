@@ -32,12 +32,13 @@ commands[12]:
   (none)=home: overdue, due today, counts
   projects, tasks, task <projectId> <taskId>, overdue, upcoming
   create "<title>" --project <id>, edit <projectId> <taskId>, complete <projectId> <taskId>
-  auth login|status|logout, setup hooks, update [--check] (upgrade ticktick-axi)
+  auth setup|login|status|logout, setup hooks, update [--check] (upgrade ticktick-axi)
 flags:
   --help (every command), -v/-V/--version
 writes:
   create/edit/complete are dry runs that send nothing until you add --yes
 auth:
+  easiest: the person runs \`ticktick-axi auth setup\` in their own terminal (guided, then signs in)
   OAuth: export TICKTICK_CLIENT_ID/TICKTICK_CLIENT_SECRET, then \`ticktick-axi auth login\`
   or a personal API token: \`ticktick-axi auth login --token-stdin < token.txt\`
   TICKTICK_ACCESS_TOKEN overrides the stored token

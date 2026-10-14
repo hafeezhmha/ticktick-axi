@@ -4,7 +4,12 @@ import { createServer as createNetServer } from "node:net";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { authIo } from "../src/commands/auth.js";
-import { pendingPath, tokenPath, writeStoredToken } from "../src/config.js";
+import {
+  clientConfigPath,
+  pendingPath,
+  tokenPath,
+  writeStoredToken,
+} from "../src/config.js";
 import {
   buildAuthorizeUrl,
   exchangeCode,
@@ -576,5 +581,130 @@ describe("auth logout", () => {
     const r = await run("auth", "logout", "--revoke");
     expect(r.out).toContain("could not reach TickTick");
     expect(existsSync(tokenPath())).toBe(false);
+  });
+});
+
+describe("auth setup", () => {
+  /** Answer the prompts in order, recording what was asked and whether it was hidden. */
+  function answers(...replies: string[]) {
+    const asked: { q: string; hidden: boolean }[] = [];
+    authIo.stdinIsTTY = () => true;
+    authIo.ask = async (q, hidden = false) => {
+      asked.push({ q, hidden });
+      return replies.shift() ?? "";
+    };
+    return asked;
+  }
+
+  /** Capture stderr, and play the browser once the authorize URL is printed. */
+  function browser(port: number) {
+    const logs: string[] = [];
+    authIo.stderr = (s) => {
+      logs.push(s);
+      const m = /https:\/\/ticktick\.com\/oauth\/authorize\S+/.exec(s);
+      if (!m) return;
+      const state = new URL(m[0]).searchParams.get("state");
+      setTimeout(() => {
+        void hit(`http://127.0.0.1:${port}/callback?code=c0de&state=${state}`);
+      }, 30);
+    };
+    return logs;
+  }
+
+  it("never prompts an agent: without a terminal it exits 2 and says what to do", async () => {
+    authIo.stdinIsTTY = () => false;
+    let asked = false;
+    authIo.ask = async () => {
+      asked = true;
+      return "";
+    };
+    const { out, code } = await run("auth", "setup");
+    expect(code).toBe(2);
+    expect(asked).toBe(false);
+    expect(out).toContain("code: VALIDATION_ERROR");
+    expect(out).toContain("npx -y ticktick-axi auth setup");
+    expect(existsSync(clientConfigPath())).toBe(false);
+  });
+
+  it("saves pasted credentials without stray whitespace, 0600, then signs in", async () => {
+    const port = await freePort();
+    vi.stubEnv("TICKTICK_REDIRECT_URI", `http://127.0.0.1:${port}/callback`);
+    const calls = mockFetch([tokenRoute()]);
+    const asked = answers("  id-123 \n", ` ${FAKE_SECRET}\n `);
+    const logs = browser(port);
+    const { out, code } = await run("auth", "setup", "--timeout", "10");
+    expect(code).toBe(0);
+    expect(asked.map((a) => a.hidden)).toEqual([false, true]);
+    expect(logs.join("")).toContain(
+      '"OAuth redirect URL" (not "App Service URL")',
+    );
+    const saved = JSON.parse(readFileSync(clientConfigPath(), "utf-8"));
+    expect(saved).toEqual({ clientId: "id-123", clientSecret: FAKE_SECRET });
+    if (process.platform !== "win32") {
+      expect(
+        (await import("node:fs")).statSync(clientConfigPath()).mode & 0o777,
+      ).toBe(0o600);
+    }
+    const basic = Buffer.from(`id-123:${FAKE_SECRET}`).toString("base64");
+    expect(calls[0].headers.Authorization).toBe(`Basic ${basic}`);
+    expect(out).toContain("auth: signed in (OAuth)");
+    expect(out).toContain("setup:");
+    expect(out).not.toContain(FAKE_SECRET);
+    expect(out).not.toContain(FAKE_TOKEN);
+  });
+
+  it("--no-login saves only, and keeps other keys in config.json", async () => {
+    const calls = mockFetch([]);
+    writeFileSync(
+      clientConfigPath(),
+      JSON.stringify({ redirectUri: "http://127.0.0.1:7777/cb" }),
+    );
+    answers("id-9", "secret-9");
+    authIo.stderr = () => {};
+    const { out, code } = await run("auth", "setup", "--no-login");
+    expect(code).toBe(0);
+    expect(calls).toHaveLength(0);
+    expect(JSON.parse(readFileSync(clientConfigPath(), "utf-8"))).toEqual({
+      redirectUri: "http://127.0.0.1:7777/cb",
+      clientId: "id-9",
+      clientSecret: "secret-9",
+    });
+    expect(out).toContain("auth login");
+  });
+
+  it("offers credentials already saved, and Enter keeps them", async () => {
+    mockFetch([]);
+    writeFileSync(
+      clientConfigPath(),
+      JSON.stringify({ clientId: "kept-id", clientSecret: "kept-secret" }),
+    );
+    const asked = answers("");
+    authIo.stderr = () => {};
+    const { code } = await run("auth", "setup", "--no-login");
+    expect(code).toBe(0);
+    expect(asked).toHaveLength(1);
+    expect(asked[0].q).toContain("Use the credentials saved");
+    expect(JSON.parse(readFileSync(clientConfigPath(), "utf-8")).clientId).toBe(
+      "kept-id",
+    );
+  });
+
+  it("an empty answer writes nothing", async () => {
+    answers("id-1", "   ");
+    authIo.stderr = () => {};
+    const { out, code } = await run("auth", "setup");
+    expect(code).toBe(2);
+    expect(out).toContain(
+      "Both the Client ID and the Client Secret are needed",
+    );
+    expect(existsSync(clientConfigPath())).toBe(false);
+  });
+
+  it("notes when exported credentials would override the saved file", async () => {
+    withClient();
+    answers("id-2", "secret-2");
+    authIo.stderr = () => {};
+    const { out } = await run("auth", "setup", "--no-login");
+    expect(out).toContain("override config.json");
   });
 });

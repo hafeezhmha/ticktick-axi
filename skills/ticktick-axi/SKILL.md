@@ -20,7 +20,8 @@ If output shows a follow-up command starting with `ticktick-axi`, run it as `npx
 
 ticktick-axi uses TickTick's official Open API. If a command fails with `AUTH_REQUIRED` or `TOKEN_EXPIRED`, ask the person to sign in; never ask them to paste a token into the chat.
 
-- OAuth: register an app at https://developer.ticktick.com/manage with redirect URI `http://localhost:8765/callback`, export `TICKTICK_CLIENT_ID` and `TICKTICK_CLIENT_SECRET`, then run `npx -y ticktick-axi auth login` in their own terminal and approve in the browser.
+- Easiest: ask the person to run `npx -y ticktick-axi auth setup` in their own terminal. It walks them through creating the TickTick app, takes the Client ID and secret (hidden), saves them and signs in. Never run `auth setup` yourself: it only works at a terminal and exits 2 for an agent.
+- OAuth by hand: register an app at https://developer.ticktick.com/manage with its "OAuth redirect URL" set to `http://localhost:8765/callback`, export `TICKTICK_CLIENT_ID` and `TICKTICK_CLIENT_SECRET`, then run `npx -y ticktick-axi auth login` in their own terminal and approve in the browser.
 - Personal API token: TickTick web > Settings > Account > API Token, then `npx -y ticktick-axi auth login --token-stdin < token.txt`.
 
 ## Workflow
@@ -40,12 +41,13 @@ commands[12]:
   (none)=home: overdue, due today, counts
   projects, tasks, task <projectId> <taskId>, overdue, upcoming
   create "<title>" --project <id>, edit <projectId> <taskId>, complete <projectId> <taskId>
-  auth login|status|logout, setup hooks, update [--check] (upgrade ticktick-axi)
+  auth setup|login|status|logout, setup hooks, update [--check] (upgrade ticktick-axi)
 flags:
   --help (every command), -v/-V/--version
 writes:
   create/edit/complete are dry runs that send nothing until you add --yes
 auth:
+  easiest: the person runs `npx -y ticktick-axi auth setup` in their own terminal (guided, then signs in)
   OAuth: export TICKTICK_CLIENT_ID/TICKTICK_CLIENT_SECRET, then `npx -y ticktick-axi auth login`
   or a personal API token: `npx -y ticktick-axi auth login --token-stdin < token.txt`
   TICKTICK_ACCESS_TOKEN overrides the stored token

@@ -44,6 +44,13 @@ export interface ClientConfig {
 }
 
 /**
+ * Pasted credentials often carry a stray space or line break, and TickTick
+ * then answers the token exchange with a bare 401. Client ids and secrets
+ * never contain whitespace, so all of it is removed.
+ */
+export const cleanCredential = (s: string): string => s.replace(/\s+/g, "");
+
+/**
  * OAuth app credentials: TICKTICK_CLIENT_ID / TICKTICK_CLIENT_SECRET
  * (and optional TICKTICK_REDIRECT_URI) win over config.json.
  * Returns null when neither source provides both id and secret.
@@ -51,25 +58,27 @@ export interface ClientConfig {
 export function readClientConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): ClientConfig | null {
-  if (env.TICKTICK_CLIENT_ID && env.TICKTICK_CLIENT_SECRET) {
+  const envId = cleanCredential(env.TICKTICK_CLIENT_ID ?? "");
+  const envSecret = cleanCredential(env.TICKTICK_CLIENT_SECRET ?? "");
+  if (envId && envSecret) {
     return {
-      clientId: env.TICKTICK_CLIENT_ID,
-      clientSecret: env.TICKTICK_CLIENT_SECRET,
+      clientId: envId,
+      clientSecret: envSecret,
       redirectUri: env.TICKTICK_REDIRECT_URI || DEFAULT_REDIRECT_URI,
       source: "env",
     };
   }
   const file = readJson(clientConfigPath());
-  if (
-    file &&
-    typeof file.clientId === "string" &&
-    typeof file.clientSecret === "string" &&
-    file.clientId &&
-    file.clientSecret
-  ) {
+  const fileId =
+    typeof file?.clientId === "string" ? cleanCredential(file.clientId) : "";
+  const fileSecret =
+    typeof file?.clientSecret === "string"
+      ? cleanCredential(file.clientSecret)
+      : "";
+  if (file && fileId && fileSecret) {
     return {
-      clientId: file.clientId,
-      clientSecret: file.clientSecret,
+      clientId: fileId,
+      clientSecret: fileSecret,
       redirectUri:
         env.TICKTICK_REDIRECT_URI ||
         (typeof file.redirectUri === "string" && file.redirectUri) ||
@@ -78,6 +87,15 @@ export function readClientConfig(
     };
   }
   return null;
+}
+
+/**
+ * Save OAuth app credentials to config.json (0600), keeping any other keys
+ * already there, such as a custom redirectUri.
+ */
+export function writeClientConfig(clientId: string, clientSecret: string) {
+  const path = clientConfigPath();
+  writePrivateJson(path, { ...(readJson(path) ?? {}), clientId, clientSecret });
 }
 
 export interface StoredToken {

@@ -75,13 +75,21 @@ ticktick-axi --version
 
 ## Sign in
 
-There are two ways. Both store the token in your config directory (see [Security](#security)).
+The quickest way is the guided setup. Run it in your own terminal (an agent can't run it for you; it exits with a note saying so):
+
+```sh
+npx -y ticktick-axi auth setup
+```
+
+It tells you how to create the TickTick app and which field takes the redirect URL, asks for the Client ID and the Client Secret (typing hidden, stray spaces removed), saves them to `config.json` with permissions 600, and signs you in. Run it again any time; it offers the saved credentials first. `--no-login` saves them without signing in.
+
+The two ways it automates, by hand, follow. Both store the token in your config directory (see [Security](#security)).
 
 ### Option A: OAuth (recommended for apps; documented flow)
 
 1. Open the [TickTick Developer Center](https://developer.ticktick.com/manage) and sign in with your TickTick account.
 2. Create a new app ("Manage Apps" > "+App Name"). Any name works, e.g. `ticktick-axi (personal)`.
-3. Open the app and set **OAuth redirect URL** to exactly:
+3. Open the app and set **OAuth redirect URL** (not "App Service URL", which is the app's homepage) to exactly:
 
    ```
    http://localhost:8765/callback
