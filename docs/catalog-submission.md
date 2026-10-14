@@ -90,7 +90,7 @@ See the [no-mistakes quick start](https://kunchenguid.github.io/no-mistakes/star
 | Verified against a real TickTick account                                                                              | not done (out of scope here, by design)   |
 | Public GitHub repo created and pushed                                                                                 | done                                      |
 | npm package published                                                                                                 | done (0.1.0)                              |
-| Release tagged                                                                                                        | not done                                  |
+| Release tagged                                                                                                        | done (`ticktick-axi-v0.2.0`)              |
 | no-mistakes installed and `init --fork-url` run                                                                       | not done                                  |
 | axi fork, catalog entry, `pnpm run docs:gen`, `git push no-mistakes`                                                  | not done                                  |
 | Independent admission review                                                                                          | not done (reviewer's step)                |

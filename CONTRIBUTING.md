@@ -37,9 +37,11 @@ release-please cuts releases from conventional commits on `main`. Merging its re
 Staged versions are not public until the maintainer approves them with 2FA:
 
 ```sh
-npm stage list ticktick-axi        # find the stage id
-npm stage approve <stage-id>       # prompts for 2FA, then publishes
+npx -y npm@latest stage list ticktick-axi     # shows the stage id
+npx -y npm@latest stage approve STAGE_ID      # paste the id; prompts for 2FA, then publishes
 ```
+
+`npm stage` needs npm 11 or later; `npx -y npm@latest` runs it without upgrading your global npm.
 
 (Or approve it on npmjs.com.) The trusted publisher allows only `npm stage publish`, so a compromised workflow cannot ship a version on its own.
 
