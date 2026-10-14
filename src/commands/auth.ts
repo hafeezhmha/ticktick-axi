@@ -32,6 +32,9 @@ import {
   waitForCallback,
 } from "../oauth.js";
 
+/** How long `auth setup` waits for one answer before giving up. */
+const ASK_TIMEOUT_MS = 10 * 60 * 1000;
+
 /** I/O seams so tests never touch the real terminal. */
 export const authIo = {
   stderr: (s: string) => {
@@ -45,13 +48,25 @@ export const authIo = {
   },
   /** Ask the person at the terminal (prompt on stderr); `hidden` for secrets. */
   ask: (question: string, hidden = false): Promise<string> =>
-    new Promise((resolve) => {
+    new Promise((resolve, reject) => {
       const rl = createInterface({
         input: process.stdin,
         output: process.stderr,
         terminal: true,
       });
+      // A prompt never waits forever, even if something gives it a terminal.
+      const timer = setTimeout(() => {
+        rl.close();
+        process.stderr.write("\n");
+        reject(
+          usage(
+            `No answer for ${ASK_TIMEOUT_MS / 60_000} minutes, so setup stopped`,
+            "Run `ticktick-axi auth setup` again when you are ready",
+          ),
+        );
+      }, ASK_TIMEOUT_MS);
       rl.question(question, (answer) => {
+        clearTimeout(timer);
         rl.close();
         if (hidden) process.stderr.write("\n");
         resolve(answer);

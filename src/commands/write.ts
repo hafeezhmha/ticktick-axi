@@ -20,7 +20,7 @@ import {
   zonedToUtc,
   type UserDate,
 } from "../dates.js";
-import { fail, usage } from "../errors.js";
+import { fail, goneResult, orGone, usage } from "../errors.js";
 import {
   parsePriority,
   priorityName,
@@ -526,7 +526,13 @@ export async function deleteCommand(args: string[]) {
   validateId(projectId, "project id");
   validateId(taskId, "task id");
   const client = getClient();
-  const t = await api.getTask(client, projectId, taskId);
+  const t = await orGone(api.getTask(client, projectId, taskId));
+  if (!t) {
+    return goneResult(
+      `task ${taskId}`,
+      `Run \`ticktick-axi tasks --project ${projectId}\` to list task ids`,
+    );
+  }
   const ref = {
     id: taskId,
     title: t.title ?? "",

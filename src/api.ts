@@ -52,7 +52,8 @@ export function getClient(): TickTickClient {
     throw fail(
       "AUTH_REQUIRED",
       "Not signed in to TickTick",
-      "Run `ticktick-axi auth login` (OAuth) or `ticktick-axi auth login --token-stdin` (personal API token)",
+      "Ask the person to run `npx -y ticktick-axi auth setup` in their own terminal (guided sign-in)",
+      "Or, without waiting on a browser: `ticktick-axi auth login --no-wait`, then `auth login --callback-url '<url>'`; or pipe a personal API token to `ticktick-axi auth login --token-stdin`",
       "Or export TICKTICK_ACCESS_TOKEN",
     );
   }

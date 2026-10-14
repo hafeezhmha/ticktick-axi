@@ -56,7 +56,7 @@ writes:
   every command that changes something is a dry run that sends nothing until you add --yes
 auth:
   easiest: the person runs `npx -y ticktick-axi auth setup` in their own terminal (guided, then signs in)
-  OAuth: export TICKTICK_CLIENT_ID/TICKTICK_CLIENT_SECRET, then `npx -y ticktick-axi auth login`
+  OAuth: export TICKTICK_CLIENT_ID/TICKTICK_CLIENT_SECRET, then `npx -y ticktick-axi auth login --no-wait` (agent-safe)
   or a personal API token: `npx -y ticktick-axi auth login --token-stdin < token.txt`
   TICKTICK_ACCESS_TOKEN overrides the stored token
 time zone: TICKTICK_AXI_TZ (IANA name) or the system zone

@@ -140,8 +140,8 @@ function expiredError(token: ResolvedToken) {
       ? "TickTick rejected TICKTICK_ACCESS_TOKEN (expired or revoked)"
       : "Your TickTick login has expired or was revoked",
     token.source === "env"
-      ? "Replace TICKTICK_ACCESS_TOKEN with a fresh token, or unset it and run `ticktick-axi auth login`"
-      : "Run `ticktick-axi auth login` to sign in again",
+      ? "Replace TICKTICK_ACCESS_TOKEN with a fresh token, or unset it and ask the person to run `npx -y ticktick-axi auth setup` in their own terminal"
+      : "Sign in again: ask the person to run `npx -y ticktick-axi auth setup` in their own terminal (guided sign-in)",
   );
 }
 
@@ -160,7 +160,7 @@ async function translateError(
         "FORBIDDEN",
         `TickTick refused access${suffix}`,
         "The token may lack the tasks:read/tasks:write scope, or you lack permission on this project",
-        "Run `ticktick-axi auth login` to grant both scopes again",
+        "Sign in again and allow both permissions: ask the person to run `npx -y ticktick-axi auth setup` in their own terminal (guided sign-in)",
       );
     case 404:
       return fail(

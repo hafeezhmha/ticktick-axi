@@ -4,7 +4,7 @@ import {
   uninstallSessionStartHooks,
 } from "axi-sdk-js";
 import { bool, parseArgs } from "../args.js";
-import { usage } from "../errors.js";
+import { fail, usage } from "../errors.js";
 
 export const SETUP_HELP = `usage: ticktick-axi setup hooks [--project] [--remove | --status]
 Opt-in: install a session-start hook so Claude Code, Codex and OpenCode see
@@ -39,24 +39,55 @@ export async function setupCommand(args: string[]) {
   }
   const scope = bool(p, "project") ? "project" : "user";
 
-  if (bool(p, "status")) {
+  // What is actually on disk, per agent: every result is re-read, never assumed.
+  const read = () => {
     const s = sessionStartHookStatus({ ...IDENTITY, scope });
     return {
-      hooks: {
-        scope,
-        claude: s.claude.installed,
-        codex: s.codex.installed,
-        opencode: s.opencode.installed,
-      },
+      claude: s.claude.installed,
+      codex: s.codex.installed,
+      opencode: s.opencode.installed,
     };
-  }
-  if (bool(p, "remove")) {
-    uninstallSessionStartHooks({ ...IDENTITY, scope });
-    return { setup: `session-start hooks removed (${scope} scope)` };
-  }
-  installSessionStartHooks({ ...IDENTITY, scope });
-  return {
-    setup: `session-start hooks installed or already up to date (${scope} scope)`,
-    help: ["Restart your agent session for the hook to take effect"],
   };
+  if (bool(p, "status")) return { hooks: { scope, ...read() } };
+
+  const errors: string[] = [];
+  const onError = (message: string) => errors.push(message);
+  if (bool(p, "remove")) {
+    uninstallSessionStartHooks({ ...IDENTITY, scope, onError });
+    const left = Object.entries(read()).filter(([, on]) => on);
+    const out: Record<string, unknown> = {
+      setup:
+        left.length === 0
+          ? `session-start hooks removed (${scope} scope)`
+          : `still installed for ${left.map(([a]) => a).join(", ")} (${scope} scope)`,
+    };
+    if (errors.length) out.errors = errors;
+    if (left.length) {
+      out.help = [
+        "Check the errors above, then run `ticktick-axi setup hooks --remove` again",
+      ];
+    }
+    return out;
+  }
+
+  installSessionStartHooks({ ...IDENTITY, scope, onError });
+  const hooks = read();
+  const on = Object.entries(hooks)
+    .filter(([, v]) => v)
+    .map(([a]) => a);
+  if (on.length === 0) {
+    throw fail(
+      "CONFIG_ERROR",
+      `No session-start hook was installed (${scope} scope)${errors.length ? `: ${errors.join("; ")}` : ""}`,
+      "Hooks install only from an installed ticktick-axi: run `npx -y ticktick-axi setup hooks` or install it globally first",
+      "Run `ticktick-axi setup hooks --status` to see each agent",
+    );
+  }
+  const out: Record<string, unknown> = {
+    setup: `session-start hook installed for ${on.join(", ")} (${scope} scope)`,
+    hooks: { scope, ...hooks },
+  };
+  if (errors.length) out.errors = errors;
+  out.help = ["Restart your agent session for the hook to take effect"];
+  return out;
 }

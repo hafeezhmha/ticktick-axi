@@ -1,7 +1,7 @@
 import { bool, expectPositionals, parseArgs, shellQuote } from "../args.js";
 import { api, getClient, validateId } from "../api.js";
 import { displayDate, formatApiDate, userTimeZone } from "../dates.js";
-import { fail, usage } from "../errors.js";
+import { goneResult, usage } from "../errors.js";
 import { truncate } from "../format.js";
 
 const GATE = {
@@ -126,9 +126,8 @@ async function deleteComment(args: string[]) {
   const comments = Array.isArray(raw) ? raw : [];
   const c = comments.find((x) => x.id === commentId);
   if (!c) {
-    throw fail(
-      "NOT_FOUND",
-      `No comment ${commentId} on task ${taskId}`,
+    return goneResult(
+      `comment ${commentId}`,
       `Run \`ticktick-axi comments ${projectId} ${taskId}\` to list comment ids`,
     );
   }

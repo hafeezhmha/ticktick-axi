@@ -29,7 +29,8 @@ describe("home (no args)", () => {
     expect(code).toBe(0);
     expect(out).toContain("bin: ");
     expect(out).toContain("status: not signed in to TickTick");
-    expect(out).toContain("developer.ticktick.com/manage");
+    expect(out).toContain("npx -y ticktick-axi auth setup");
+    expect(out).toContain("auth login --no-wait");
     expect(calls).toHaveLength(0);
   });
 

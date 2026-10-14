@@ -318,6 +318,17 @@ describe("search", () => {
   });
 });
 
+describe("search --limit hint", () => {
+  it("gives the full command to see everything", async () => {
+    const many = Array.from({ length: 3 }, (_, i) => task({ id: `s${i}` }));
+    mockFetch([{ method: "POST", url: /\/task\/search$/, res: json(many) }]);
+    const { out } = await run("search", "pack", "--limit", "1", "--tag", "x");
+    expect(out).toContain(
+      "Run `ticktick-axi search pack --tag x --limit 3` to see all 3",
+    );
+  });
+});
+
 describe("completed", () => {
   it("defaults to the last 7 days and lists newest first", async () => {
     const calls = mockFetch([
@@ -409,14 +420,14 @@ describe("comments", () => {
     expect(calls.at(-1)?.body).toEqual({ title: "Called" });
   });
 
-  it("deletes an existing comment, and refuses an unknown one", async () => {
+  it("deletes an existing comment; an unknown one is a no-op", async () => {
     const calls = mockFetch([
       comments,
       { method: "DELETE", url: /./, res: new Response("") },
     ]);
-    expect((await run("comment", "delete", PROJECT, T1, "nope")).out).toContain(
-      "code: NOT_FOUND",
-    );
+    const gone = await run("comment", "delete", PROJECT, T1, "nope");
+    expect(gone.code).toBe(0);
+    expect(gone.out).toContain("already deleted, or the id is wrong (no-op)");
     expect((await run("comment", "delete", PROJECT, T1, "c1")).out).toContain(
       "would_delete:",
     );

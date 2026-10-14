@@ -19,7 +19,7 @@ import {
   validateLifeId,
   type Focus,
 } from "../api-life.js";
-import { AxiError, fail, usage } from "../errors.js";
+import { AxiError, fail, goneResult, orGone, usage } from "../errors.js";
 import type { TickTickClient } from "../http.js";
 import {
   addDays,
@@ -482,7 +482,13 @@ async function deleteFocus(args: string[]) {
   focusId(id);
   const tz = userTimeZone();
   const client = getClient();
-  const f = await findFocus(client, id, typeFlag(p, false) ?? [0, 1]);
+  const f = await orGone(findFocus(client, id, typeFlag(p, false) ?? [0, 1]));
+  if (!f) {
+    return goneResult(
+      `focus record ${id}`,
+      "Run `ticktick-axi focus --from -30d` to list focus record ids",
+    );
+  }
   const ref = renderFocus(f, tz, false);
   if (!bool(p, "yes")) {
     return {

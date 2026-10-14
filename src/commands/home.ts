@@ -18,9 +18,8 @@ export async function homeCommand() {
     return {
       status: "not signed in to TickTick",
       setup: [
-        "1. Register an app at https://developer.ticktick.com/manage with redirect URI http://localhost:8765/callback",
-        "2. export TICKTICK_CLIENT_ID=<id> TICKTICK_CLIENT_SECRET=<secret>",
-        "3. Run `ticktick-axi auth login` and open the printed URL",
+        "Ask the person to run `npx -y ticktick-axi auth setup` in their own terminal (guided sign-in)",
+        "Or, without waiting on a browser: `ticktick-axi auth login --no-wait`, then `auth login --callback-url '<url>'`",
         "Or: pipe a personal API token (TickTick > Settings > Account > API Token) into `ticktick-axi auth login --token-stdin`",
       ],
       help: ["Run `ticktick-axi --help` to see all commands"],

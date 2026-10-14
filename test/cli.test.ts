@@ -19,6 +19,7 @@ vi.mock("axi-sdk-js", async (orig) => ({
 import {
   installSessionStartHooks,
   runUpdate,
+  sessionStartHookStatus,
   uninstallSessionStartHooks,
 } from "axi-sdk-js";
 import { createSkillMarkdown } from "../src/skill.js";
@@ -98,22 +99,47 @@ describe("update (self-update)", () => {
 describe("setup hooks", () => {
   it("installs, reports and removes with the ticktick-axi marker", async () => {
     expect((await run("setup", "hooks")).out).toContain(
-      "installed or already up to date (user scope)",
+      "session-start hook installed for claude (user scope)",
     );
-    expect(installSessionStartHooks).toHaveBeenCalledWith({
-      marker: "ticktick-axi",
-      binaryNames: ["ticktick-axi"],
-      scope: "user",
-    });
+    expect(installSessionStartHooks).toHaveBeenCalledWith(
+      expect.objectContaining({
+        marker: "ticktick-axi",
+        binaryNames: ["ticktick-axi"],
+        scope: "user",
+        onError: expect.any(Function),
+      }),
+    );
     const status = await run("setup", "hooks", "--status");
     expect(status.out).toContain("claude: true");
     expect(status.out).toContain("codex: false");
     expect(
       (await run("setup", "hooks", "--remove", "--project")).out,
-    ).toContain("removed (project scope)");
+    ).toContain("still installed for claude (project scope)");
     expect(uninstallSessionStartHooks).toHaveBeenCalledWith(
       expect.objectContaining({ scope: "project" }),
     );
+  });
+
+  it("reports a failed install instead of claiming success", async () => {
+    vi.mocked(sessionStartHookStatus).mockReturnValueOnce({
+      marker: "ticktick-axi",
+      scope: "user",
+      claude: { installed: false, path: "x" },
+      codex: {
+        installed: false,
+        path: "x",
+        userFeatureEnabled: false,
+        userFeaturePath: "x",
+      },
+      opencode: { installed: false, path: "x" },
+    });
+    vi.mocked(installSessionStartHooks).mockImplementationOnce((o) => {
+      o?.onError?.("could not write settings.json");
+    });
+    const { out, code } = await run("setup", "hooks");
+    expect(code).toBe(1);
+    expect(out).toContain("code: CONFIG_ERROR");
+    expect(out).toContain("could not write settings.json");
   });
 
   it("validates its arguments", async () => {

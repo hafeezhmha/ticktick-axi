@@ -8,7 +8,7 @@ import {
 } from "../args.js";
 import { api, getClient, type Project } from "../api.js";
 import { apiOrg, type ProjectFields, type ProjectInfo } from "../api-org.js";
-import { usage } from "../errors.js";
+import { goneResult, orGone, usage } from "../errors.js";
 import type { TickTickClient } from "../http.js";
 import {
   checkId,
@@ -321,7 +321,13 @@ async function deleteProject(args: string[]) {
     );
   }
   const client = getClient();
-  const pr = await apiOrg.getProject(client, id);
+  const pr = await orGone(apiOrg.getProject(client, id));
+  if (!pr) {
+    return goneResult(
+      `project ${id}`,
+      "Run `ticktick-axi projects` to list project ids",
+    );
+  }
   const { tasks, columns } = await contents(client, id);
   const ref = {
     id,

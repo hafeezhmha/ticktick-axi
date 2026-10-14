@@ -1,5 +1,6 @@
 import {
   bool,
+  shellQuote,
   expectPositionals,
   intFlag,
   listValues,
@@ -78,9 +79,14 @@ export async function searchCommand(args: string[]) {
 
   const found = await api.searchTasks(getClient(), body);
   const tasks = Array.isArray(found) ? found : [];
-  return list(tasks, p, tz, `tasks matching "${keywords}"`, [
-    "Run `ticktick-axi task <projectId> <taskId>` for full details",
-  ]);
+  return list(
+    tasks,
+    p,
+    tz,
+    `tasks matching "${keywords}"`,
+    ["search", ...args],
+    ["Run `ticktick-axi task <projectId> <taskId>` for full details"],
+  );
 }
 
 const COMPLETED_SPEC: FlagSpec = {
@@ -135,7 +141,15 @@ export async function completedCommand(args: string[]) {
     (b.completedTime ?? "").localeCompare(a.completedTime ?? ""),
   );
   const scope = `completed tasks${fromRaw ? "" : " in the last 7 days"}`;
-  const out = list(tasks, p, tz, scope, [], ["completed"]);
+  const out = list(
+    tasks,
+    p,
+    tz,
+    scope,
+    ["completed", ...args],
+    [],
+    ["completed"],
+  );
   if (tasks.length >= FILTER_CAP) {
     out.note = `TickTick returns at most ${FILTER_CAP} completed tasks; narrow the range with --from/--to or --project`;
   }
@@ -147,6 +161,7 @@ function list(
   p: ReturnType<typeof parseArgs>,
   tz: string,
   scope: string,
+  rerun: string[],
   help: string[],
   alwaysExtra: string[] = [],
 ) {
@@ -168,9 +183,22 @@ function list(
   const h = [...help];
   if (tasks.length > rows.length) {
     h.unshift(
-      `Add --limit ${Math.min(tasks.length, MAX_LIMIT)} to see all ${tasks.length}`,
+      `Run \`ticktick-axi ${withoutLimit(rerun).map(shellQuote).join(" ")} --limit ${Math.min(tasks.length, MAX_LIMIT)}\` to see all ${tasks.length}`,
     );
   }
   if (h.length) out.help = h;
+  return out;
+}
+
+/** The command line again without any --limit, so the hint can add its own. */
+function withoutLimit(args: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--limit") {
+      i++;
+      continue;
+    }
+    if (!args[i].startsWith("--limit=")) out.push(args[i]);
+  }
   return out;
 }

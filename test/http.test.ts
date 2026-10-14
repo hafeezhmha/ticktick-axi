@@ -149,7 +149,7 @@ describe("TickTickClient", () => {
       client().request("GET", "/project", { read: true }),
     );
     expect(fileErr.code).toBe("TOKEN_EXPIRED");
-    expect(fileErr.suggestions[0]).toContain("auth login");
+    expect(fileErr.suggestions[0]).toContain("auth setup");
     const envErr = await err(
       client({ source: "env" }).request("GET", "/project", { read: true }),
     );

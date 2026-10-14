@@ -1,7 +1,7 @@
 import { bool, expectPositionals, parseArgs, str } from "../args.js";
 import { api, getClient, type Project } from "../api.js";
 import { apiOrg, type ProjectGroup } from "../api-org.js";
-import { fail, usage } from "../errors.js";
+import { fail, goneResult, orGone, usage } from "../errors.js";
 import type { TickTickClient } from "../http.js";
 import {
   checkId,
@@ -196,7 +196,8 @@ async function deleteGroup(args: string[]) {
   );
   const id = checkId(raw, "group id", GROUP_IDS_HINT);
   const client = getClient();
-  const g = await findGroup(client, id);
+  const g = await orGone(findGroup(client, id));
+  if (!g) return goneResult(`project group ${id}`, GROUP_IDS_HINT);
   const ref = { id, name: g.name ?? "" };
   const inside = (await loadProjects(client)).filter((x) => x.groupId === id);
   if (!bool(p, "yes")) {
