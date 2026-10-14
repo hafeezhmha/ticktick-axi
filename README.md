@@ -46,6 +46,9 @@ help[3]: Run `ticktick-axi upcoming --days 7` for the week ahead,Run `ticktick-a
 
 Node 20 or newer.
 
+> [!NOTE]
+> **Not on npm yet.** Until the first release, install [from a local clone](#from-a-local-clone) (below). The skill, `npx -y ticktick-axi` and `npm install -g ticktick-axi` start working once the package is published.
+
 **Agent skill** (on-demand, works in any agent that reads [Agent Skills](https://agentskills.io)):
 
 ```sh
@@ -60,7 +63,7 @@ The skill runs the CLI through `npx -y ticktick-axi`, so no global install is ne
 npm install -g ticktick-axi
 ```
 
-**From a local clone** (before an npm release, or to hack on it):
+<a id="from-a-local-clone"></a>**From a local clone** (before the npm release, or to hack on it):
 
 ```sh
 git clone https://github.com/hafeezhmha/ticktick-axi.git
@@ -406,7 +409,7 @@ pnpm run format:check
 pnpm test                          # vitest + coverage; fully offline (fetch is mocked)
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Built with [`axi-sdk-js`](https://github.com/kunchenguid/axi/tree/main/packages/axi-sdk-js) for dispatch, TOON output, structured errors, `--version` fast path and session hooks.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [VISION.md](VISION.md) for what belongs here. Built with [`axi-sdk-js`](https://github.com/kunchenguid/axi/tree/main/packages/axi-sdk-js) for dispatch, TOON output, structured errors, `--version` fast path and session hooks.
 
 ## License
 
