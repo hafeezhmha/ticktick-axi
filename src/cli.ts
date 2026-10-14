@@ -1,14 +1,34 @@
 import { encode } from "@toon-format/toon";
 import { runAxiCli } from "axi-sdk-js";
+import {
+  ASSIGN_HELP,
+  assignCommand,
+  UNASSIGN_HELP,
+  unassignCommand,
+} from "./commands/assign.js";
 import { AUTH_HELP, authCommand } from "./commands/auth.js";
+import { BATCH_HELP, batchCommand } from "./commands/batch.js";
+import {
+  COLUMN_HELP,
+  columnCommand,
+  COLUMNS_HELP,
+  columnsCommand,
+} from "./commands/columns.js";
 import {
   COMMENT_HELP,
   commentCommand,
   COMMENTS_HELP,
   commentsCommand,
 } from "./commands/comments.js";
+import {
+  GROUP_HELP,
+  groupCommand,
+  GROUPS_HELP,
+  groupsCommand,
+} from "./commands/groups.js";
 import { homeCommand } from "./commands/home.js";
 import { ITEM_HELP, itemCommand } from "./commands/items.js";
+import { PROJECT_HELP, projectCommand } from "./commands/project.js";
 import { PROJECTS_HELP, projectsCommand } from "./commands/projects.js";
 import {
   COMPLETED_HELP,
@@ -18,6 +38,12 @@ import {
 } from "./commands/search.js";
 import { selfUpdateCommand, UPDATE_HELP } from "./commands/self-update.js";
 import { SETUP_HELP, setupCommand } from "./commands/setup.js";
+import {
+  TAG_HELP,
+  tagCommand,
+  TAGS_HELP,
+  tagsCommand,
+} from "./commands/tags.js";
 import { TASK_HELP, taskCommand } from "./commands/task.js";
 import {
   OVERDUE_HELP,
@@ -45,17 +71,20 @@ export const DESCRIPTION =
   "Agent ergonomic CLI for TickTick tasks via the official Open API. Read freely; writes are dry runs until --yes.";
 
 export const TOP_HELP = `usage: ticktick-axi [command] [args] [flags]
-commands[19]:
+commands[29]:
   (none)=home: overdue, due today, counts
   projects, tasks, task <projectId> <taskId>, overdue, upcoming, completed, search "<keywords>"
   create "<title>" --project <id>, edit <projectId> <taskId>, complete <projectId> <taskId>...
-  move <projectId> <taskId> --to <projectId>, delete <projectId> <taskId>
+  move <projectId> <taskId> --to <projectId>, delete <projectId> <taskId>, batch --file <json>
   item add|done|undo|rename|remove <projectId> <taskId> (checklist), comments, comment add|delete
+  assign <projectId> <taskId> <username>, unassign <projectId> <taskId>
+  project show|create|edit|delete|members, groups, group create|edit|delete
+  columns <projectId>, column create|edit (kanban), tags, tag create
   auth setup|login|status|logout, setup hooks, update [--check] (upgrade ticktick-axi)
 flags:
   --help (every command), -v/-V/--version
 writes:
-  create/edit/complete/move/delete/item/comment are dry runs that send nothing until you add --yes
+  every command that changes something is a dry run that sends nothing until you add --yes
 auth:
   easiest: the person runs \`ticktick-axi auth setup\` in their own terminal (guided, then signs in)
   OAuth: export TICKTICK_CLIENT_ID/TICKTICK_CLIENT_SECRET, then \`ticktick-axi auth login\`
@@ -87,6 +116,16 @@ const COMMAND_HELP: Record<string, string> = {
   completed: COMPLETED_HELP,
   comments: COMMENTS_HELP,
   comment: COMMENT_HELP,
+  project: PROJECT_HELP,
+  groups: GROUPS_HELP,
+  group: GROUP_HELP,
+  columns: COLUMNS_HELP,
+  column: COLUMN_HELP,
+  tags: TAGS_HELP,
+  tag: TAG_HELP,
+  assign: ASSIGN_HELP,
+  unassign: UNASSIGN_HELP,
+  batch: BATCH_HELP,
   setup: SETUP_HELP,
   update: UPDATE_HELP,
 };
@@ -108,6 +147,16 @@ const COMMANDS = {
   completed: completedCommand,
   comments: commentsCommand,
   comment: commentCommand,
+  project: projectCommand,
+  groups: groupsCommand,
+  group: groupCommand,
+  columns: columnsCommand,
+  column: columnCommand,
+  tags: tagsCommand,
+  tag: tagCommand,
+  assign: assignCommand,
+  unassign: unassignCommand,
+  batch: batchCommand,
   setup: setupCommand,
 };
 

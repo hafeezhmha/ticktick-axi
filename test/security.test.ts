@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { batchIo } from "../src/commands/batch.js";
 import { writeStoredToken } from "../src/config.js";
 import {
   FAKE_SECRET,
@@ -36,11 +37,37 @@ const COMMANDS: string[][] = [
   ["complete", PROJECT, TASK, "a00000000000000000000002", "--yes"],
   ["item", "add", PROJECT, TASK, "x", "--yes"],
   ["edit", PROJECT, TASK, "--clear-due", "--yes"],
+  ["project", "show", PROJECT],
+  ["project", "members", PROJECT],
+  ["project", "create", "X", "--yes"],
+  ["project", "edit", PROJECT, "--name", "Y", "--yes"],
+  ["project", "delete", PROJECT, "--yes"],
+  ["groups"],
+  ["group", "create", "X", "--yes"],
+  ["group", "edit", "g1", "--name", "Y", "--yes"],
+  ["group", "delete", "g1", "--yes"],
+  ["columns", PROJECT],
+  ["column", "create", PROJECT, "X", "--yes"],
+  ["column", "edit", PROJECT, "c1", "--name", "Y", "--yes"],
+  ["tags"],
+  ["tag", "create", "X", "--yes"],
+  ["assign", PROJECT, TASK, "pal@example.com", "--yes"],
+  ["unassign", PROJECT, TASK, "--yes"],
+  ["batch", "--stdin", "--yes"],
   ["auth", "logout"],
 ];
 
+const originalIo = { ...batchIo };
+
+afterEach(() => {
+  Object.assign(batchIo, originalIo);
+});
+
 beforeEach(() => {
   isolate();
+  batchIo.stdinIsTTY = () => false;
+  batchIo.readStdin = async () =>
+    JSON.stringify({ add: [{ title: "X", projectId: PROJECT }] });
   vi.stubEnv("TICKTICK_CLIENT_ID", "test-client-id");
   vi.stubEnv("TICKTICK_CLIENT_SECRET", FAKE_SECRET);
 });
@@ -49,12 +76,44 @@ describe("tokens never reach output", () => {
   it("on success paths", async () => {
     mockFetch([
       { url: /\/project$/, res: json([{ id: PROJECT, name: "Work" }]) },
+      {
+        method: "GET",
+        url: /\/project\/group$/,
+        res: json([{ id: "g1", name: "Life" }]),
+      },
+      {
+        method: "GET",
+        url: /\/column$/,
+        res: json([{ id: "c1", name: "Doing" }]),
+      },
+      { method: "GET", url: /\/tag$/, res: json([{ name: "work" }]) },
+      {
+        method: "GET",
+        url: /\/members$/,
+        res: json([{ username: "pal@example.com", self: false }]),
+      },
+      {
+        method: "GET",
+        url: new RegExp(`/project/${PROJECT}$`),
+        res: json({ id: PROJECT, name: "Work" }),
+      },
+      {
+        method: "GET",
+        url: /\/task\/[^/]+$/,
+        res: json({ ...fixtureTasks()[0], assigneeUsername: "me" }),
+      },
+      {
+        method: "POST",
+        url: /\/task\/batch$/,
+        res: json({ id2etag: { n1: "e" }, id2error: {} }),
+      },
       { url: /\/data$/, res: json({ tasks: fixtureTasks() }) },
       { url: /\/task\/filter$/, res: json(fixtureTasks()) },
       { method: "GET", url: /\/task\//, res: json(fixtureTasks()[0]) },
       { method: "POST", url: /\/complete$/, res: new Response("") },
       { method: "POST", url: /\/task(\/|$)/, res: json(fixtureTasks()[0]) },
       { method: "DELETE", url: /./, res: new Response("") },
+      { method: "POST", url: /./, res: json({ id: "x1", name: "Y" }) },
     ]);
     for (const argv of COMMANDS) {
       const { out } = await run(...argv);
