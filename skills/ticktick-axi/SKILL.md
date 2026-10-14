@@ -29,23 +29,25 @@ ticktick-axi uses TickTick's official Open API. If a command fails with `AUTH_RE
 1. Run `npx -y ticktick-axi` with no arguments: overdue tasks, today's tasks, and counts.
 2. `projects` lists project ids. The Inbox is not listed by the API; use `--project inbox`.
 3. `tasks` lists open tasks soonest-due first; narrow with `--project <id>`, `--overdue`, `--upcoming <days>`, `--due-before/--due-after <date>`, `--priority`, `--tag`, `--status`. `overdue` and `upcoming [--days N]` are shortcuts.
-4. `task <projectId> <taskId>` shows one task; both ids come from list output.
-5. Writes are gated. `create`, `edit` and `complete` without `--yes` print a dry run and send nothing. Show the dry run to the person, and rerun with `--yes` only after they say yes. Never add `--yes` on your own.
+4. `task <projectId> <taskId>` shows one task, with its checklist items numbered; both ids come from list output. `search "<keywords>"` finds tasks by text; `completed` shows what got done (default: the last 7 days); `comments` shows a task's comments.
+5. Writes are gated. `create`, `edit` (including `--clear-due`), `complete` (one task or up to 50), `move --to`, `delete`, `item add|done|undo|rename|remove` and `comment add|delete` without `--yes` print a dry run and send nothing. Prefer `complete` over `delete` for finished work. Show the dry run to the person, and rerun with `--yes` only after they say yes. Never add `--yes` on your own.
 6. Every response ends with next-step hints under `help`: follow them.
 
 ## Commands
 
 ```
 usage: ticktick-axi [command] [args] [flags]
-commands[12]:
+commands[19]:
   (none)=home: overdue, due today, counts
-  projects, tasks, task <projectId> <taskId>, overdue, upcoming
-  create "<title>" --project <id>, edit <projectId> <taskId>, complete <projectId> <taskId>
+  projects, tasks, task <projectId> <taskId>, overdue, upcoming, completed, search "<keywords>"
+  create "<title>" --project <id>, edit <projectId> <taskId>, complete <projectId> <taskId>...
+  move <projectId> <taskId> --to <projectId>, delete <projectId> <taskId>
+  item add|done|undo|rename|remove <projectId> <taskId> (checklist), comments, comment add|delete
   auth setup|login|status|logout, setup hooks, update [--check] (upgrade ticktick-axi)
 flags:
   --help (every command), -v/-V/--version
 writes:
-  create/edit/complete are dry runs that send nothing until you add --yes
+  create/edit/complete/move/delete/item/comment are dry runs that send nothing until you add --yes
 auth:
   easiest: the person runs `npx -y ticktick-axi auth setup` in their own terminal (guided, then signs in)
   OAuth: export TICKTICK_CLIENT_ID/TICKTICK_CLIENT_SECRET, then `npx -y ticktick-axi auth login`

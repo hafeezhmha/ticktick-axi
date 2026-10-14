@@ -27,6 +27,15 @@ const COMMANDS: string[][] = [
   ["complete", PROJECT, TASK, "--yes"],
   ["auth", "status", "--verify"],
   ["auth", "setup"],
+  ["search", "rent"],
+  ["completed"],
+  ["comments", PROJECT, TASK],
+  ["comment", "add", PROJECT, TASK, "note", "--yes"],
+  ["move", PROJECT, TASK, "--to", "6226ff9877acee87727f6bcb", "--yes"],
+  ["delete", PROJECT, TASK, "--yes"],
+  ["complete", PROJECT, TASK, "a00000000000000000000002", "--yes"],
+  ["item", "add", PROJECT, TASK, "x", "--yes"],
+  ["edit", PROJECT, TASK, "--clear-due", "--yes"],
   ["auth", "logout"],
 ];
 
@@ -45,6 +54,7 @@ describe("tokens never reach output", () => {
       { method: "GET", url: /\/task\//, res: json(fixtureTasks()[0]) },
       { method: "POST", url: /\/complete$/, res: new Response("") },
       { method: "POST", url: /\/task(\/|$)/, res: json(fixtureTasks()[0]) },
+      { method: "DELETE", url: /./, res: new Response("") },
     ]);
     for (const argv of COMMANDS) {
       const { out } = await run(...argv);

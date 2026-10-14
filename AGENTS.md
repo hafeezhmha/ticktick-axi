@@ -23,7 +23,7 @@ Command behavior is owned by [README.md](README.md). Contributor workflow, relea
 - `src/query.ts`: which endpoint serves a listing, and client-side due-date filters and sorting.
 - `src/dates.ts`, `src/format.ts`: TickTick dates and time zones; priority and status maps, rows, `--fields`, truncation.
 - `src/config.ts`, `src/oauth.ts`: config dir, credentials and token storage (0700 dir, 0600 file); authorize URL, code exchange, loopback listener.
-- `src/commands/*.ts`: one file per command group, each exporting its handler and `*_HELP`.
+- `src/commands/*.ts`: one file per command group, each exporting its handler and `*_HELP` (`write.ts`: create, edit, complete, move, delete; `items.ts`: checklist; `search.ts`: search, completed; `comments.ts`).
 
 ## Development
 

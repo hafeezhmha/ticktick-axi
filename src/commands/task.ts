@@ -82,7 +82,9 @@ export function renderTask(t: Task, tz: string, full: boolean) {
   if (items.length) {
     task.checklist = checklistSummary(t);
     const shown = full ? items : items.slice(0, ITEM_LIMIT);
-    task.items = shown.map((i) => ({
+    task.items = shown.map((i, n) => ({
+      n: n + 1,
+      id: i.id ?? "",
       title: full ? (i.title ?? "") : truncate(i.title ?? "", 100).text,
       done: i.status === 1,
     }));
@@ -100,6 +102,11 @@ export function renderTask(t: Task, tz: string, full: boolean) {
       `Run \`ticktick-axi complete ${t.projectId} ${t.id}\` to preview completing it`,
       `Run \`ticktick-axi edit ${t.projectId} ${t.id} --due <date>\` to preview a change`,
     );
+    if (items.length) {
+      help.push(
+        `Run \`ticktick-axi item done ${t.projectId} ${t.id} <n>\` to preview ticking off an item`,
+      );
+    }
   }
   if (help.length) out.help = help;
   return out;

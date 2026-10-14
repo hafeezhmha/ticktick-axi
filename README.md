@@ -180,20 +180,27 @@ Config directory: `$XDG_CONFIG_HOME/ticktick-axi` or `~/.config/ticktick-axi` on
 
 Every command has `--help`. Exit codes: `0` success (including no-ops), `1` error, `2` usage error. Errors are printed on stdout in the same TOON format, with a `code` and `help`.
 
-| Command                                         | What it does                                                                                                   |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| _(no args)_                                     | Home: counts, overdue and due-today tasks                                                                      |
-| `projects [--closed]`                           | Projects with id, name, kind                                                                                   |
-| `tasks [flags]`                                 | Tasks across projects or one, soonest due first                                                                |
-| `task <projectId> <taskId> [--full]`            | One task in detail                                                                                             |
-| `overdue [flags]`                               | Open tasks whose due date/time has passed                                                                      |
-| `upcoming [--days N] [flags]`                   | Open tasks due from now through today+N (default 7)                                                            |
-| `create "<title>" --project <id> [...] [--yes]` | Create a task (dry run without `--yes`)                                                                        |
-| `edit <projectId> <taskId> [...] [--yes]`       | Change a task (dry run without `--yes`)                                                                        |
-| `complete <projectId> <taskId> [--yes]`         | Complete a task (dry run without `--yes`)                                                                      |
-| `auth login\|status\|logout`                    | Sign in and out                                                                                                |
-| `setup hooks [--project] [--remove\|--status]`  | Opt-in session hook                                                                                            |
-| `update [--check]`                              | Upgrade ticktick-axi itself (axi-sdk-js built-in); task-shaped arguments are rejected with a pointer to `edit` |
+| Command                                                                 | What it does                                                                                                   |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| _(no args)_                                                             | Home: counts, overdue and due-today tasks                                                                      |
+| `projects [--closed]`                                                   | Projects with id, name, kind                                                                                   |
+| `tasks [flags]`                                                         | Tasks across projects or one, soonest due first                                                                |
+| `task <projectId> <taskId> [--full]`                                    | One task in detail                                                                                             |
+| `overdue [flags]`                                                       | Open tasks whose due date/time has passed                                                                      |
+| `upcoming [--days N] [flags]`                                           | Open tasks due from now through today+N (default 7)                                                            |
+| `create "<title>" --project <id> [...] [--yes]`                         | Create a task (dry run without `--yes`)                                                                        |
+| `edit <projectId> <taskId> [...] [--yes]`                               | Change a task (dry run without `--yes`)                                                                        |
+| `complete <projectId> <taskId> [<taskId> ...] [--yes]`                  | Complete one task, or up to 50 from one project (dry run without `--yes`)                                      |
+| `move <projectId> <taskId> --to <projectId> [--yes]`                    | Move a task to another project (dry run without `--yes`)                                                       |
+| `delete <projectId> <taskId> [--yes]`                                   | Delete a task; TickTick keeps it in its trash (dry run without `--yes`)                                        |
+| `item add\|done\|undo\|rename\|remove <projectId> <taskId> ... [--yes]` | Change one checklist item (subtask) (dry run without `--yes`)                                                  |
+| `search "<keywords>" [flags]`                                           | Search titles and content, with project, tag, status and due-date filters                                      |
+| `completed [--from] [--to] [--project]`                                 | Tasks completed in a range (default: the last 7 days)                                                          |
+| `comments <projectId> <taskId>`                                         | A task's comments                                                                                              |
+| `comment add\|delete <projectId> <taskId> ... [--yes]`                  | Add or delete a comment (dry run without `--yes`)                                                              |
+| `auth setup\|login\|status\|logout`                                     | Sign in and out (`auth setup` is the guided way, for a person at a terminal)                                   |
+| `setup hooks [--project] [--remove\|--status]`                          | Opt-in session hook                                                                                            |
+| `update [--check]`                                                      | Upgrade ticktick-axi itself (axi-sdk-js built-in); task-shaped arguments are rejected with a pointer to `edit` |
 
 `tasks`, `overdue` and `upcoming` share these flags: `--project <id>` (`inbox` for the Inbox), `--priority none|low|medium|high` (comma-separated for several), `--tag <tag>` (repeatable; all must match), `--limit <n>` (default 100, max 500), `--fields <list>` (extra columns: `projectId, priority, status, tags, start, allDay, repeat, completed, kind, items, content`), `--full` (no title truncation). `tasks` adds `--status open|completed|abandoned|all`, `--due-before <date>`, `--due-after <date>` (both exclusive), `--overdue` and `--upcoming <days>`.
 
@@ -359,16 +366,16 @@ help[2]: Run `ticktick-axi auth login` (OAuth) or `ticktick-axi auth login --tok
 
 ## Write gating
 
-- `create`, `edit` and `complete` never write without `--yes`. Without it they print `dry_run: nothing was sent`, what would change, and the exact command to confirm with. The CLI never prompts; the agent relays the dry run and adds `--yes` only after the person says yes. The bundled skill says so.
+- `create`, `edit`, `complete`, `move`, `delete`, `item` and `comment` never write without `--yes`. Without it they print `dry_run: nothing was sent`, what would change, and the exact command to confirm with. The CLI never prompts; the agent relays the dry run and adds `--yes` only after the person says yes. The bundled skill says so.
 - Already-true states are no-ops with exit 0: completing a completed task, or an edit whose values are already in place.
-- There is no `delete` command, on purpose.
+- `delete` previews what would go, and suggests `complete` when the work is done. TickTick keeps deleted tasks in its trash: they leave every list, though a lookup by id can still find one.
 - **Retries.** Reads (GETs and the query-only `POST /task/filter`) retry up to 3 times on 429 and 5xx and on network failures, with exponential backoff (0.5 s, 1 s, 2 s) or the server's `Retry-After` when it is 30 s or less. Writes are never retried automatically: a timed-out create may already have landed. A 429 on a write means it was rejected and is safe to rerun later; a network failure during a write is reported as `WRITE_UNCERTAIN`.
 
 ## Limitations of the official API
 
 Facts below come from the [Open API docs](https://developer.ticktick.com/docs#/openapi) as of October 2026. ticktick-axi uses no undocumented endpoints.
 
-- **Endpoints used:** `GET /open/v1/project`, `GET /open/v1/project/{projectId}/data`, `GET /open/v1/project/{projectId}/task/{taskId}`, `POST /open/v1/task/filter`, `POST /open/v1/task`, `POST /open/v1/task/{taskId}`, `POST /open/v1/project/{projectId}/task/{taskId}/complete`, plus `https://ticktick.com/oauth/authorize`, `https://ticktick.com/oauth/token` and `POST https://api.ticktick.com/oauth/revoke`.
+- **Endpoints used:** `GET /open/v1/project`, `GET /open/v1/project/{projectId}/data`, `GET /open/v1/project/{projectId}/task/{taskId}`, `POST /open/v1/task/filter`, `POST /open/v1/task`, `POST /open/v1/task/{taskId}`, `POST /open/v1/project/{projectId}/task/{taskId}/complete`, `POST /open/v1/task/completeTasks`, `DELETE /open/v1/project/{projectId}/task/{taskId}`, `POST /open/v1/task/move`, `POST /open/v1/task/search`, `POST /open/v1/task/completed`, `GET`/`POST`/`DELETE` on `/open/v1/project/{projectId}/task/{taskId}/comment(s)`, plus `https://ticktick.com/oauth/authorize`, `https://ticktick.com/oauth/token` and `POST https://api.ticktick.com/oauth/revoke`.
 - **Tasks are addressed by project id + task id.** That is why `task`, `edit` and `complete` take both.
 - **Cross-project listing** uses `POST /task/filter`, which is documented to return at most 200 tasks. When a result hits 200, output carries a `note`; narrow with `--project`, `--priority` or `--tag`. A single project's open tasks come from `/project/{id}/data`, which has no documented cap.
 - **The filter endpoint filters dates on `startDate`, not `dueDate`**, so all due-date filtering (`--due-before`, `--overdue`, `--upcoming`) happens locally.
@@ -376,7 +383,9 @@ Facts below come from the [Open API docs](https://developer.ticktick.com/docs#/o
 - **Token lifetime and refresh** are not documented. The token endpoint lists only `grant_type=authorization_code`, so there is no automatic refresh: when TickTick rejects the token you get `TOKEN_EXPIRED` and sign in again. TickTick does return `expires_in` (verified: about 180 days), so the expiry is stored and shown by `auth status`. (Some community clients try a `refresh_token` grant; it is not documented, so ticktick-axi does not.)
 - **Rate limits are not documented.** 429 is handled anyway, honouring `Retry-After`.
 - **Scopes:** `tasks:read tasks:write`, both requested.
-- **Not covered (yet):** moving tasks between projects, clearing a due date, subtask (checklist item) edits, tags/habits/focus endpoints. The docs describe Update Task fields as optional but do not say how to clear one. Fields left out of an `edit` stay as they were (verified against a real account).
+- **Clearing a date and checklists** (verified against a real account, not stated in the docs): an update with `dueDate: null` clears the due date (TickTick clears the start date with it), while `""` is ignored; `edit --clear-due` sends `null`. An update that includes `items` replaces the whole checklist, so `item` sends the current list back with one change; fields left out of an update stay as they were.
+- **Comment times** come back from the live API as epoch milliseconds, though the docs show date strings; ticktick-axi reads both.
+- **Not covered (yet):** batch create/update, assign and unassign, projects (create, update, delete, members), project groups, columns, tags, habits, focus records, countdowns and user preferences. All are documented; they are planned for the next releases.
 
 ## Troubleshooting
 

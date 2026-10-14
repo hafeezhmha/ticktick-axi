@@ -8,7 +8,8 @@ import {
   type FlagSpec,
   type ParsedArgs,
 } from "../args.js";
-import { api, getClient, validateId, type Task } from "../api.js";
+import { api, getClient, validateId, type Project, type Task } from "../api.js";
+import type { TickTickClient } from "../http.js";
 import {
   DATE_FORMATS,
   dueInfo,
@@ -19,7 +20,7 @@ import {
   zonedToUtc,
   type UserDate,
 } from "../dates.js";
-import { usage } from "../errors.js";
+import { fail, usage } from "../errors.js";
 import {
   parsePriority,
   priorityName,
@@ -55,13 +56,13 @@ const CREATE_SPEC: FlagSpec = {
 };
 
 const EDIT_SPEC: FlagSpec = {
-  bool: ["yes"],
+  bool: ["yes", "clear-due", "clear-start"],
   value: ["title", "due", "start", "priority", "content"],
   repeat: ["tag"],
   renamed: {
     ...GATE_RENAMED,
     project:
-      "Moving tasks between projects is not supported; the project id is the first argument",
+      "To move a task to another project, use `ticktick-axi move <projectId> <taskId> --to <projectId>`",
     status:
       "Use `ticktick-axi complete <projectId> <taskId>` to complete a task",
   },
@@ -89,21 +90,48 @@ Only the fields you pass are sent; a change that is already in place is a no-op.
 flags:
   --title <text>, --due <date>, --start <date>, --priority <p>, --content <text>
   --tag <tag>        replaces the task's tags (repeatable or comma-separated)
+  --clear-due        remove the due date (TickTick clears the start date with it)
+  --clear-start      remove the start date
   --yes              actually apply it
 dates: ${DATE_FORMATS}
 examples:
   ticktick-axi edit <projectId> <taskId> --due tomorrow
   ticktick-axi edit <projectId> <taskId> --priority high --title "Renew passport" --yes
+  ticktick-axi edit <projectId> <taskId> --clear-due
 `;
 
-export const COMPLETE_HELP = `usage: ticktick-axi complete <projectId> <taskId> [--yes]
-Marks a task completed. Without --yes this is a dry run. Completing an already-completed task is a no-op.
-For a repeating task, TickTick completes this occurrence and schedules the next one.
+/** POST /task/completeTasks processes at most 50 ids. */
+export const COMPLETE_MAX = 50;
+
+export const COMPLETE_HELP = `usage: ticktick-axi complete <projectId> <taskId> [<taskId> ...] [--yes]
+Marks tasks completed: one, or up to ${COMPLETE_MAX} from the same project at once. Without --yes this is a dry run.
+Already-completed tasks are skipped (a no-op). For a repeating task, TickTick completes this
+occurrence and schedules the next one.
 flags:
-  --yes   actually complete it
+  --yes   actually complete them
 examples:
   ticktick-axi complete <projectId> <taskId>
-  ticktick-axi complete <projectId> <taskId> --yes
+  ticktick-axi complete <projectId> <taskId> <taskId> <taskId> --yes
+`;
+
+export const DELETE_HELP = `usage: ticktick-axi delete <projectId> <taskId> [--yes]
+Deletes a task. Without --yes this is a dry run that shows what would go.
+Prefer \`complete\` for finished work; delete is for tasks that should not exist.
+flags:
+  --yes   actually delete it (only after the person confirms)
+examples:
+  ticktick-axi delete <projectId> <taskId>
+  ticktick-axi delete <projectId> <taskId> --yes
+`;
+
+export const MOVE_HELP = `usage: ticktick-axi move <projectId> <taskId> --to <projectId> [--yes]
+Moves a task to another project. Without --yes this is a dry run. Moving to the same project is a no-op.
+flags:
+  --to <projectId>   destination (ids from \`ticktick-axi projects\`, or an inbox id like inbox123)
+  --yes              actually move it
+examples:
+  ticktick-axi move <projectId> <taskId> --to <projectId>
+  ticktick-axi move <projectId> <taskId> --to <projectId> --yes
 `;
 
 function confirmHint(command: string, args: string[], verb: string): string {
@@ -257,10 +285,23 @@ export async function editCommand(args: string[]) {
   if (p.multi.tag) want.tags = listValues(p.multi.tag);
   const content = str(p, "content");
   if (content !== undefined) want.content = content;
-  if (Object.keys(want).length === 0 && dates.length === 0) {
+  const clearDue = bool(p, "clear-due");
+  const clearStart = bool(p, "clear-start");
+  if (clearDue && str(p, "due") !== undefined) {
+    throw usage("--due and --clear-due cannot be combined");
+  }
+  if (clearStart && str(p, "start") !== undefined) {
+    throw usage("--start and --clear-start cannot be combined");
+  }
+  if (
+    Object.keys(want).length === 0 &&
+    dates.length === 0 &&
+    !clearDue &&
+    !clearStart
+  ) {
     throw usage(
       "Nothing to change",
-      "Pass at least one of --title, --due, --start, --priority, --tag, --content",
+      "Pass at least one of --title, --due, --start, --priority, --tag, --content, --clear-due, --clear-start",
     );
   }
 
@@ -327,6 +368,22 @@ export async function editCommand(args: string[]) {
     body.timeZone = tz;
   }
 
+  // TickTick ignores "" and clears a date only when it is sent as null.
+  for (const [flag, field, label] of [
+    [clearDue, "dueDate", "due"],
+    [clearStart, "startDate", "start"],
+  ] as const) {
+    if (!flag || !current[field]) continue;
+    changes.push({
+      field: label,
+      from:
+        displayDate(current[field], !!current.isAllDay, tz, current.timeZone) ??
+        "set",
+      to: "none",
+    });
+    body[field] = null;
+  }
+
   const ref = { id: taskId, title: current.title ?? "" };
   if (changes.length === 0) {
     return {
@@ -355,14 +412,80 @@ export async function completeCommand(args: string[]) {
     { bool: ["yes"], renamed: GATE_RENAMED },
     "complete",
   );
-  const [projectId, taskId] = expectPositionals(
-    p,
-    2,
-    "ticktick-axi complete <projectId> <taskId> [--yes]",
-  );
+  if (p.positionals.length < 2) {
+    throw usage(
+      "complete needs a project id and at least one task id",
+      "Usage: ticktick-axi complete <projectId> <taskId> [<taskId> ...] [--yes]",
+    );
+  }
+  const [projectId, ...taskIds] = p.positionals;
   validateId(projectId, "project id");
-  validateId(taskId, "task id");
+  for (const id of taskIds) validateId(id, "task id");
+  const ids = [...new Set(taskIds)];
+  if (ids.length > COMPLETE_MAX) {
+    throw usage(
+      `At most ${COMPLETE_MAX} tasks at once (got ${ids.length})`,
+      "Split them into several `complete` calls",
+    );
+  }
   const client = getClient();
+  if (ids.length === 1) return completeOne(client, projectId, ids[0], p, args);
+
+  const tasks: Task[] = [];
+  for (const id of ids) tasks.push(await api.getTask(client, projectId, id));
+  const open = tasks.filter((t) => statusName(t.status) !== "completed");
+  const rows = tasks.map((t) => ({
+    id: t.id,
+    title: truncate(t.title ?? "", 80).text,
+    result:
+      statusName(t.status) === "completed"
+        ? "already completed (skipped)"
+        : t.repeatFlag
+          ? "complete this occurrence (repeats)"
+          : "complete",
+  }));
+  if (open.length === 0) {
+    return { tasks: rows, result: "all already completed (no-op)" };
+  }
+  if (!bool(p, "yes")) {
+    return {
+      dry_run: "nothing was sent",
+      tasks: rows,
+      help: [confirmHint("complete", args, `complete ${open.length} task(s)`)],
+    };
+  }
+  const res = await api.completeTasks(
+    client,
+    projectId,
+    open.map((t) => t.id),
+  );
+  const done = new Set(Array.isArray(res) ? res : []);
+  const out: Record<string, unknown> = {
+    completed: `${done.size} of ${open.length}`,
+    tasks: open.map((t) => ({
+      id: t.id,
+      title: truncate(t.title ?? "", 80).text,
+      result: done.has(t.id) ? "completed" : "not completed by TickTick",
+    })),
+  };
+  out.help =
+    done.size < open.length
+      ? [
+          `Run \`ticktick-axi task ${projectId} <taskId>\` to check one that was not completed`,
+        ]
+      : [
+          `Run \`ticktick-axi tasks --project ${projectId}\` to see what's left in this project`,
+        ];
+  return out;
+}
+
+async function completeOne(
+  client: TickTickClient,
+  projectId: string,
+  taskId: string,
+  p: ParsedArgs,
+  args: string[],
+) {
   const t: Task = await api.getTask(client, projectId, taskId);
   const status = statusName(t.status);
   const ref = { id: taskId, title: t.title ?? "" };
@@ -390,5 +513,125 @@ export async function completeCommand(args: string[]) {
     help: [
       `Run \`ticktick-axi tasks --project ${projectId}\` to see what's left in this project`,
     ],
+  };
+}
+
+export async function deleteCommand(args: string[]) {
+  const p = parseArgs(args, { bool: ["yes"], renamed: GATE_RENAMED }, "delete");
+  const [projectId, taskId] = expectPositionals(
+    p,
+    2,
+    "ticktick-axi delete <projectId> <taskId> [--yes]",
+  );
+  validateId(projectId, "project id");
+  validateId(taskId, "task id");
+  const client = getClient();
+  const t = await api.getTask(client, projectId, taskId);
+  const ref = {
+    id: taskId,
+    title: t.title ?? "",
+    status: statusName(t.status),
+    due: dueInfo(t, userTimeZone())?.display ?? "none",
+  };
+  if (!bool(p, "yes")) {
+    const out: Record<string, unknown> = {
+      dry_run: "nothing was sent",
+      would_delete: ref,
+    };
+    if (t.items?.length) {
+      out.note = `its checklist (${t.items.length} items) goes with it`;
+    }
+    out.help = [
+      confirmHint("delete", args, "delete it"),
+      `Run \`ticktick-axi complete ${projectId} ${taskId}\` instead if the work is done`,
+    ];
+    return out;
+  }
+  await api.deleteTask(client, projectId, taskId);
+  return {
+    deleted: { id: taskId, title: ref.title },
+    help: [
+      `Run \`ticktick-axi tasks --project ${projectId}\` to see what's left in this project`,
+    ],
+  };
+}
+
+/** Project names for previews; the Inbox is not in GET /project. */
+async function projectNames(
+  client: TickTickClient,
+): Promise<(id: string) => string> {
+  const raw = await api.listProjects(client);
+  const projects: Project[] = Array.isArray(raw) ? raw : [];
+  const names = new Map(projects.map((pr) => [pr.id, pr.name ?? pr.id]));
+  return (id) =>
+    id.startsWith("inbox") ? "Inbox" : (names.get(id) ?? `project ${id}`);
+}
+
+export async function moveCommand(args: string[]) {
+  const p = parseArgs(
+    args,
+    {
+      bool: ["yes"],
+      value: ["to"],
+      renamed: {
+        ...GATE_RENAMED,
+        project:
+          "The source project is the first argument; use --to <projectId> for the destination",
+        "to-project": "Use --to <projectId>",
+      },
+    },
+    "move",
+  );
+  const [projectId, taskId] = expectPositionals(
+    p,
+    2,
+    "ticktick-axi move <projectId> <taskId> --to <projectId> [--yes]",
+  );
+  validateId(projectId, "project id");
+  validateId(taskId, "task id");
+  const to = str(p, "to");
+  if (!to) {
+    throw usage(
+      "--to <projectId> is required",
+      "Run `ticktick-axi projects` to list project ids",
+    );
+  }
+  if (to === "inbox") {
+    throw usage(
+      "Pass the inbox's real id, not the `inbox` alias",
+      "Find it as the projectId of an Inbox task: `ticktick-axi tasks --project inbox`",
+    );
+  }
+  validateId(to, "project id");
+  const client = getClient();
+  const t = await api.getTask(client, projectId, taskId);
+  const ref = { id: taskId, title: t.title ?? "" };
+  if (to === projectId) {
+    return { task: { ...ref, result: "already in that project (no-op)" } };
+  }
+  const name = await projectNames(client);
+  const change = `project: ${name(projectId)} -> ${name(to)}`;
+  if (!bool(p, "yes")) {
+    return {
+      dry_run: "nothing was sent",
+      task: ref,
+      would_change: change,
+      help: [confirmHint("move", args, "move it")],
+    };
+  }
+  const res = await api.moveTasks(client, [
+    { fromProjectId: projectId, toProjectId: to, taskId },
+  ]);
+  if (!Array.isArray(res) || !res.some((r) => r?.id === taskId)) {
+    throw fail(
+      "WRITE_UNCERTAIN",
+      "TickTick did not confirm the move",
+      `Run \`ticktick-axi task ${to} ${taskId}\` to check where the task is now`,
+    );
+  }
+  return {
+    moved: ref,
+    change,
+    help: [`Run \`ticktick-axi task ${to} ${taskId}\` to view it`],
   };
 }

@@ -23,6 +23,15 @@ export interface Task {
   parentId?: string;
 }
 
+/** Fields of the Open API `OpenComment` definition. */
+export interface Comment {
+  id: string;
+  title?: string;
+  /** Documented as a date string; the live API sends epoch milliseconds. */
+  createdTime?: string | number;
+  modifiedTime?: string | number;
+}
+
 export interface Project {
   id: string;
   name?: string;
@@ -116,5 +125,87 @@ export const api = {
       "POST",
       `/project/${enc(projectId)}/task/${enc(taskId)}/complete`,
       { read: false, what: `task ${taskId} in project ${projectId}` },
+    ),
+
+  /** POST /task/completeTasks: up to 50 tasks of one project; returns the ids it completed. */
+  completeTasks: (c: TickTickClient, projectId: string, taskIds: string[]) =>
+    c.request<string[]>("POST", "/task/completeTasks", {
+      body: { projectId, taskIds },
+      read: false,
+    }),
+
+  deleteTask: (c: TickTickClient, projectId: string, taskId: string) =>
+    c.request<null>(
+      "DELETE",
+      `/project/${enc(projectId)}/task/${enc(taskId)}`,
+      { read: false, what: `task ${taskId} in project ${projectId}` },
+    ),
+
+  /** POST /task/move takes an array of moves; returns `{ id, etag }` per moved task. */
+  moveTasks: (
+    c: TickTickClient,
+    moves: Array<{
+      fromProjectId: string;
+      toProjectId: string;
+      taskId: string;
+    }>,
+  ) =>
+    c.request<Array<{ id?: string; etag?: string }>>("POST", "/task/move", {
+      body: moves,
+      read: false,
+    }),
+
+  /** POST /task/search is a query, so it is retry-safe. */
+  searchTasks: (
+    c: TickTickClient,
+    body: {
+      keywords: string;
+      projectIds?: string[];
+      tags?: string[];
+      status?: number[];
+      dueFrom?: string;
+      dueTo?: string;
+    },
+  ) => c.request<Task[]>("POST", "/task/search", { body, read: true }),
+
+  /** POST /task/completed: at most 200 completed tasks; a query, retry-safe. */
+  completedTasks: (
+    c: TickTickClient,
+    body: { projectIds?: string[]; startDate?: string; endDate?: string },
+  ) => c.request<Task[]>("POST", "/task/completed", { body, read: true }),
+
+  listComments: (c: TickTickClient, projectId: string, taskId: string) =>
+    c.request<Comment[]>(
+      "GET",
+      `/project/${enc(projectId)}/task/${enc(taskId)}/comments`,
+      { read: true, what: `task ${taskId} in project ${projectId}` },
+    ),
+
+  addComment: (
+    c: TickTickClient,
+    projectId: string,
+    taskId: string,
+    title: string,
+  ) =>
+    c.request<Comment>(
+      "POST",
+      `/project/${enc(projectId)}/task/${enc(taskId)}/comment`,
+      {
+        body: { title },
+        read: false,
+        what: `task ${taskId} in project ${projectId}`,
+      },
+    ),
+
+  deleteComment: (
+    c: TickTickClient,
+    projectId: string,
+    taskId: string,
+    commentId: string,
+  ) =>
+    c.request<null>(
+      "DELETE",
+      `/project/${enc(projectId)}/task/${enc(taskId)}/comment/${enc(commentId)}`,
+      { read: false, what: `comment ${commentId} on task ${taskId}` },
     ),
 };

@@ -150,6 +150,18 @@ export function formatApiDate(instant: number): string {
   );
 }
 
+/**
+ * A user date as an API range bound: a plain date means the start of that day
+ * (or its last second, for an end bound) in the user's zone.
+ */
+export function rangeBound(ud: UserDate, tz: string, end: boolean): string {
+  if (ud.kind === "datetime") return formatApiDate(ud.instant);
+  const key = end ? addDays(ud.key, 1) : ud.key;
+  const [y, m, d] = key.split("-").map(Number);
+  const start = zonedToUtc(y, m, d, 0, 0, tz);
+  return formatApiDate(end ? start - 1000 : start);
+}
+
 export type UserDate =
   { kind: "date"; key: string } | { kind: "datetime"; instant: number };
 

@@ -408,7 +408,7 @@ describe("task", () => {
     expect(out).toContain("repeat: FREQ=MONTHLY;INTERVAL=1");
     expect(out).toContain("(truncated, 1500 chars total)");
     expect(out).toContain("checklist: 3/25 done");
-    expect(out).toContain("items[20]{title,done}:");
+    expect(out).toContain("items[20]{n,id,title,done}:");
     expect(out).toContain(`task ${PROJECT} ${detail.id} --full`);
     expect(out).toContain(`complete ${PROJECT} ${detail.id}`);
   });
@@ -417,7 +417,7 @@ describe("task", () => {
     mockFetch([{ url: /./, res: json(detail) }]);
     const { out } = await run("task", PROJECT, detail.id, "--full");
     expect(out).not.toContain("truncated");
-    expect(out).toContain("items[25]{title,done}:");
+    expect(out).toContain("items[25]{n,id,title,done}:");
     expect(out).not.toContain("--full`");
   });
 

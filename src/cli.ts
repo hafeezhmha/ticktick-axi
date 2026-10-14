@@ -1,8 +1,21 @@
 import { encode } from "@toon-format/toon";
 import { runAxiCli } from "axi-sdk-js";
 import { AUTH_HELP, authCommand } from "./commands/auth.js";
+import {
+  COMMENT_HELP,
+  commentCommand,
+  COMMENTS_HELP,
+  commentsCommand,
+} from "./commands/comments.js";
 import { homeCommand } from "./commands/home.js";
+import { ITEM_HELP, itemCommand } from "./commands/items.js";
 import { PROJECTS_HELP, projectsCommand } from "./commands/projects.js";
+import {
+  COMPLETED_HELP,
+  completedCommand,
+  SEARCH_HELP,
+  searchCommand,
+} from "./commands/search.js";
 import { selfUpdateCommand, UPDATE_HELP } from "./commands/self-update.js";
 import { SETUP_HELP, setupCommand } from "./commands/setup.js";
 import { TASK_HELP, taskCommand } from "./commands/task.js";
@@ -19,8 +32,12 @@ import {
   completeCommand,
   CREATE_HELP,
   createCommand,
+  DELETE_HELP,
+  deleteCommand,
   EDIT_HELP,
   editCommand,
+  MOVE_HELP,
+  moveCommand,
 } from "./commands/write.js";
 import { VERSION } from "./version.js";
 
@@ -28,15 +45,17 @@ export const DESCRIPTION =
   "Agent ergonomic CLI for TickTick tasks via the official Open API. Read freely; writes are dry runs until --yes.";
 
 export const TOP_HELP = `usage: ticktick-axi [command] [args] [flags]
-commands[12]:
+commands[19]:
   (none)=home: overdue, due today, counts
-  projects, tasks, task <projectId> <taskId>, overdue, upcoming
-  create "<title>" --project <id>, edit <projectId> <taskId>, complete <projectId> <taskId>
+  projects, tasks, task <projectId> <taskId>, overdue, upcoming, completed, search "<keywords>"
+  create "<title>" --project <id>, edit <projectId> <taskId>, complete <projectId> <taskId>...
+  move <projectId> <taskId> --to <projectId>, delete <projectId> <taskId>
+  item add|done|undo|rename|remove <projectId> <taskId> (checklist), comments, comment add|delete
   auth setup|login|status|logout, setup hooks, update [--check] (upgrade ticktick-axi)
 flags:
   --help (every command), -v/-V/--version
 writes:
-  create/edit/complete are dry runs that send nothing until you add --yes
+  create/edit/complete/move/delete/item/comment are dry runs that send nothing until you add --yes
 auth:
   easiest: the person runs \`ticktick-axi auth setup\` in their own terminal (guided, then signs in)
   OAuth: export TICKTICK_CLIENT_ID/TICKTICK_CLIENT_SECRET, then \`ticktick-axi auth login\`
@@ -61,6 +80,13 @@ const COMMAND_HELP: Record<string, string> = {
   create: CREATE_HELP,
   edit: EDIT_HELP,
   complete: COMPLETE_HELP,
+  move: MOVE_HELP,
+  delete: DELETE_HELP,
+  item: ITEM_HELP,
+  search: SEARCH_HELP,
+  completed: COMPLETED_HELP,
+  comments: COMMENTS_HELP,
+  comment: COMMENT_HELP,
   setup: SETUP_HELP,
   update: UPDATE_HELP,
 };
@@ -75,6 +101,13 @@ const COMMANDS = {
   create: createCommand,
   edit: editCommand,
   complete: completeCommand,
+  move: moveCommand,
+  delete: deleteCommand,
+  item: itemCommand,
+  search: searchCommand,
+  completed: completedCommand,
+  comments: commentsCommand,
+  comment: commentCommand,
   setup: setupCommand,
 };
 

@@ -297,7 +297,7 @@ describe("edit", () => {
     expect((await run("edit", PROJECT, "bad id", "--title", "x")).code).toBe(2);
     expect(
       (await run("edit", PROJECT, TASK_ID, "--project", "x")).out,
-    ).toContain("Moving tasks between projects is not supported");
+    ).toContain("ticktick-axi move <projectId> <taskId> --to <projectId>");
   });
 
   it("reports a missing task as NOT_FOUND", async () => {
