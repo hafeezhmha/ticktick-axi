@@ -112,12 +112,31 @@ describe("setup hooks", () => {
     const status = await run("setup", "hooks", "--status");
     expect(status.out).toContain("claude: true");
     expect(status.out).toContain("codex: false");
-    expect(
-      (await run("setup", "hooks", "--remove", "--project")).out,
-    ).toContain("still installed for claude (project scope)");
+    const removed = await run("setup", "hooks", "--remove", "--project");
+    expect(removed.code).toBe(1);
+    expect(removed.out).toContain("code: CONFIG_ERROR");
+    expect(removed.out).toContain("still installed for claude (project scope)");
     expect(uninstallSessionStartHooks).toHaveBeenCalledWith(
       expect.objectContaining({ scope: "project" }),
     );
+  });
+
+  it("exits 0 once every hook is gone", async () => {
+    vi.mocked(sessionStartHookStatus).mockReturnValueOnce({
+      marker: "ticktick-axi",
+      scope: "user",
+      claude: { installed: false, path: "x" },
+      codex: {
+        installed: false,
+        path: "x",
+        userFeatureEnabled: false,
+        userFeaturePath: "x",
+      },
+      opencode: { installed: false, path: "x" },
+    });
+    const { out, code } = await run("setup", "hooks", "--remove");
+    expect(code).toBe(0);
+    expect(out).toContain("session-start hooks removed (user scope)");
   });
 
   it("reports a failed install instead of claiming success", async () => {

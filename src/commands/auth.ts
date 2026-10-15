@@ -21,7 +21,7 @@ import {
   type StoredToken,
 } from "../config.js";
 import { fail, usage } from "../errors.js";
-import { redact } from "../http.js";
+import { apiBase, redact } from "../http.js";
 import {
   authBase,
   buildAuthorizeUrl,
@@ -502,7 +502,7 @@ async function logout(args: string[]) {
 /** POST /oauth/revoke (documented). Failure is reported, never fatal. */
 async function revoke(accessToken: string): Promise<string> {
   const base = process.env.TICKTICK_AXI_API_BASE
-    ? new URL(process.env.TICKTICK_AXI_API_BASE).origin
+    ? new URL(apiBase()).origin
     : authBase().replace("://ticktick.com", "://api.ticktick.com");
   const form = new FormData();
   form.set("token", accessToken);

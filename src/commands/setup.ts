@@ -54,19 +54,21 @@ export async function setupCommand(args: string[]) {
   const onError = (message: string) => errors.push(message);
   if (bool(p, "remove")) {
     uninstallSessionStartHooks({ ...IDENTITY, scope, onError });
-    const left = Object.entries(read()).filter(([, on]) => on);
+    const left = Object.entries(read())
+      .filter(([, on]) => on)
+      .map(([a]) => a);
+    if (left.length) {
+      throw fail(
+        "CONFIG_ERROR",
+        `Session-start hook still installed for ${left.join(", ")} (${scope} scope)${errors.length ? `: ${errors.join("; ")}` : ""}`,
+        "Fix the error above, then run `ticktick-axi setup hooks --remove` again",
+        "Run `ticktick-axi setup hooks --status` to see each agent",
+      );
+    }
     const out: Record<string, unknown> = {
-      setup:
-        left.length === 0
-          ? `session-start hooks removed (${scope} scope)`
-          : `still installed for ${left.map(([a]) => a).join(", ")} (${scope} scope)`,
+      setup: `session-start hooks removed (${scope} scope)`,
     };
     if (errors.length) out.errors = errors;
-    if (left.length) {
-      out.help = [
-        "Check the errors above, then run `ticktick-axi setup hooks --remove` again",
-      ];
-    }
     return out;
   }
 

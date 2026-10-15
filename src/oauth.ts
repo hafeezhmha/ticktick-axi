@@ -3,7 +3,7 @@ import { createServer, type Server } from "node:http";
 import type { ClientConfig } from "./config.js";
 import { OAUTH_SCOPES } from "./config.js";
 import { fail } from "./errors.js";
-import { redact, safeJson } from "./http.js";
+import { httpsBase, redact, safeJson } from "./http.js";
 
 /**
  * OAuth2 authorization-code flow, per https://developer.ticktick.com/docs#/openapi
@@ -15,10 +15,7 @@ import { redact, safeJson } from "./http.js";
  * token stops working the person signs in again.
  */
 export function authBase(): string {
-  return (process.env.TICKTICK_AXI_AUTH_BASE || "https://ticktick.com").replace(
-    /\/$/,
-    "",
-  );
+  return httpsBase("TICKTICK_AXI_AUTH_BASE", "https://ticktick.com");
 }
 
 export function newState(): string {

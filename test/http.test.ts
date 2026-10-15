@@ -6,6 +6,7 @@ import {
   timing,
   TickTickClient,
 } from "../src/http.js";
+import { authBase } from "../src/oauth.js";
 import { API, FAKE_TOKEN, isolate, json, mockFetch } from "./support.js";
 
 const client = (extra: Record<string, unknown> = {}) =>
@@ -52,6 +53,22 @@ describe("TickTickClient", () => {
     const calls = mockFetch([{ url: /dida365/, res: json([]) }]);
     await client().request("GET", "/project", { read: true });
     expect(calls[0].url).toBe("https://api.dida365.com/open/v1/project");
+  });
+
+  it("refuses a plain-http TICKTICK_AXI_API_BASE before sending the token", async () => {
+    vi.stubEnv("TICKTICK_AXI_API_BASE", "http://api.dida365.com/open/v1");
+    const calls = mockFetch([]);
+    expect(() => client()).toThrow(
+      expect.objectContaining({ code: "CONFIG_ERROR" }),
+    );
+    expect(calls).toHaveLength(0);
+  });
+
+  it("refuses a plain-http TICKTICK_AXI_AUTH_BASE", () => {
+    vi.stubEnv("TICKTICK_AXI_AUTH_BASE", "http://dida365.com");
+    expect(() => authBase()).toThrow(
+      expect.objectContaining({ code: "CONFIG_ERROR" }),
+    );
   });
 
   it("retries reads on 429, waiting for Retry-After", async () => {

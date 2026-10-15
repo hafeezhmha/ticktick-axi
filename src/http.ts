@@ -3,6 +3,39 @@ import type { ResolvedToken } from "./config.js";
 
 export const API_BASE = "https://api.ticktick.com/open/v1";
 
+/**
+ * An overridable base URL (TICKTICK_AXI_API_BASE, TICKTICK_AXI_AUTH_BASE),
+ * without a trailing slash. Only https is accepted: the bearer token and the
+ * client secret are sent there, so a plain-http override is refused.
+ */
+export function httpsBase(envName: string, fallback: string): string {
+  const raw = process.env[envName];
+  if (!raw) return fallback;
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw fail(
+      "CONFIG_ERROR",
+      `${envName} is not a valid URL`,
+      `Unset ${envName} or set it to an https:// URL`,
+    );
+  }
+  if (url.protocol !== "https:") {
+    throw fail(
+      "CONFIG_ERROR",
+      `${envName} must be an https:// URL; refusing to send credentials over ${url.protocol.replace(":", "")}`,
+      `Unset ${envName} or set it to an https:// URL`,
+    );
+  }
+  return raw.replace(/\/$/, "");
+}
+
+/** The API base: TICKTICK_AXI_API_BASE (https only) or the TickTick API. */
+export function apiBase(): string {
+  return httpsBase("TICKTICK_AXI_API_BASE", API_BASE);
+}
+
 /** Indirection so tests can skip real waiting between retries. */
 export const timing = {
   sleep: (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
@@ -35,8 +68,7 @@ export interface RequestOptions {
 export class TickTickClient {
   constructor(
     private readonly token: ResolvedToken,
-    private readonly base: string = process.env.TICKTICK_AXI_API_BASE ||
-      API_BASE,
+    private readonly base: string = apiBase(),
   ) {}
 
   async request<T = unknown>(
