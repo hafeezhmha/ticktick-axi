@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/hafeezhmha/ticktick-axi/compare/ticktick-axi-v0.5.0...ticktick-axi-v0.5.1) (2026-10-15)
+
+
+### Bug Fixes
+
+* close the gaps an independent AXI source review found ([490428f](https://github.com/hafeezhmha/ticktick-axi/commit/490428f77b215792b5eee9e9eadcfb4cd0a03c73))
+* refuse non-https base URLs and fail a partial hook removal ([5eea330](https://github.com/hafeezhmha/ticktick-axi/commit/5eea330b50dce3f9c3885e3bbb59c5fa8e0328f2))
+
 ## [0.5.0](https://github.com/hafeezhmha/ticktick-axi/compare/ticktick-axi-v0.4.0...ticktick-axi-v0.5.0) (2026-10-14)
 
 
